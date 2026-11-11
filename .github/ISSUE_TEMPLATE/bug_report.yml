@@ -1,0 +1,50 @@
+name: Bug report
+description: Something does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Privacy first.** Issues are public. Never paste passwords, tokens, sign-in links, names of children, parents or teachers, message texts or photos. Diagnostics downloaded from Home Assistant contain no personal data and are safe to attach.
+
+        Security or privacy problems? Report them privately instead: see the [security policy](https://github.com/Paulus1337/Parro-HA/security/policy).
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.11.0"
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: In Settings > Devices & services > Parro, open the three-dot menu and select Download diagnostics. Paste or attach the file.
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines from the Home Assistant log. Remove anything personal before posting.
+      render: text
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed names, messages, photos, tokens and sign-in links from everything in this issue.
+          required: true

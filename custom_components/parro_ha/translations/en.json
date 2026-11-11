@@ -1,0 +1,221 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This Parro account is already set up.",
+      "reauth_successful": "Signed in again successfully."
+    },
+    "error": {
+      "account_locked": "Your Parro account is locked after too many wrong passwords. Reset your password on the Parro sign-in page or ask your school, then try again.",
+      "account_rejected": "Parro refused access to this account. Make sure it is a Parro parent account.",
+      "cannot_connect": "Could not reach Parro. Try again later.",
+      "choice_expired": "Choosing the account did not work, because the sign-in page had expired. Sign in again.",
+      "invalid_auth": "The e-mail address, username or password is incorrect. ParnasSys locks your account after a few wrong passwords, so check them carefully before you try again.",
+      "invalid_auth_attempts": "The e-mail address, username or password is incorrect. You have {attempts} attempts left before ParnasSys locks your account.",
+      "login_changed": "The Parro sign-in page did not respond as expected. Your password was not tried again. Try again later. If it keeps happening, report it on the Parro-HA issue tracker.",
+      "missing_credentials": "Fill in your e-mail address (or username) and your password.",
+      "not_a_parent": "This account is not a parent (guardian) account. Only parent accounts are supported.",
+      "sign_in_uncertain": "Parro did not confirm whether your password was accepted. Check that you can sign in on talk.parro.com or in the Parro app before you try again here.",
+      "two_factor": "This account uses two-step verification, which Parro-HA does not support. Use a parent account without two-step verification.",
+      "unknown": "Unexpected error. Check the logs for details.",
+      "wrong_account": "You signed in with a different Parro account. Sign in with the account that was set up originally."
+    },
+    "step": {
+      "account": {
+        "data": {
+          "account": "Account"
+        },
+        "data_description": {
+          "account": "Your sign-in covers more than one Parro account."
+        },
+        "description": "Choose the Parro account to use.",
+        "title": "Choose an account"
+      },
+      "reauth_confirm": {
+        "data": {
+          "password": "Password",
+          "username": "E-mail address or username"
+        },
+        "data_description": {
+          "password": "Sent once to the official Parro sign-in page and never stored.",
+          "username": "The e-mail address or username you use to sign in to Parro."
+        },
+        "description": "Your Parro session has ended. Sign in again with the e-mail address (or username) and password of your Parro account.\n\nParnasSys locks an account after a few wrong passwords. Home Assistant never retries a password on its own.",
+        "title": "Sign in to Parro again"
+      },
+      "user": {
+        "data": {
+          "password": "Password",
+          "user": "Home Assistant user",
+          "username": "E-mail address or username"
+        },
+        "data_description": {
+          "password": "Sent once to the official Parro sign-in page and never stored.",
+          "user": "The Home Assistant user this Parro account belongs to. The Parro card shows this account to that user, and replies by that user are sent from this account.",
+          "username": "The e-mail address or username you use to sign in to Parro."
+        },
+        "description": "Parro-HA is an unofficial open-source hobby project. It is not made, endorsed or supported by Parro or ParnasSys.\n\nSign in with the e-mail address (or username) and password of your Parro account. They are sent once, only to the official ParnasSys sign-in page, and are never stored. Home Assistant keeps a session that renews itself.\n\nParnasSys locks an account after a few wrong passwords. Home Assistant never retries a password on its own.",
+        "title": "Sign in to Parro"
+      }
+    }
+  },
+  "entity": {
+    "calendar": {
+      "child_calendar": {
+        "name": "Calendar"
+      },
+      "school_calendar": {
+        "name": "School calendar"
+      }
+    },
+    "event": {
+      "announcement": {
+        "name": "Announcement",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_announcement": "New announcement"
+            }
+          }
+        }
+      },
+      "chat_message": {
+        "name": "Chat message",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_chat_message": "New chat message"
+            }
+          }
+        }
+      }
+    },
+    "image": {
+      "child_photo": {
+        "name": "Photo"
+      },
+      "recent_photo": {
+        "name": "Recent photo {number}"
+      }
+    },
+    "sensor": {
+      "class": {
+        "name": "Class"
+      },
+      "latest_announcement": {
+        "name": "Latest announcement"
+      },
+      "next_event": {
+        "name": "Next event"
+      },
+      "unread_announcements": {
+        "name": "Unread announcements"
+      },
+      "unread_calendar_items": {
+        "name": "Unread calendar items"
+      },
+      "unread_conversations": {
+        "name": "Unread conversations"
+      }
+    }
+  },
+  "exceptions": {
+    "authentication_failed": {
+      "message": "The Parro session has ended. Sign in again."
+    },
+    "calendar_failed": {
+      "message": "Could not load the Parro calendar."
+    },
+    "conversation_not_allowed": {
+      "message": "Replies to this conversation are not allowed. Choose it in the Parro options first."
+    },
+    "conversation_not_available": {
+      "message": "This conversation cannot get a reply. Only active one-to-one and family conversations with replies turned on can."
+    },
+    "duplicate_message": {
+      "message": "The same message was already sent to this conversation in the last 6 hours."
+    },
+    "entry_not_loaded": {
+      "message": "This Parro account is not loaded. Check that it is set up and working."
+    },
+    "message_empty": {
+      "message": "The message is empty."
+    },
+    "message_link": {
+      "message": "Messages with links or e-mail addresses are not sent, for safety."
+    },
+    "message_markup": {
+      "message": "Only plain text is sent, without HTML, code, markdown links or template code. Leave out backticks, backslashes, square brackets, curly brackets and HTML tags."
+    },
+    "message_template": {
+      "message": "The message looks like an unknown value from a template, so it was not sent."
+    },
+    "message_too_long": {
+      "message": "The message is longer than 1000 characters."
+    },
+    "message_too_many_lines": {
+      "message": "The message has more than 20 lines."
+    },
+    "no_account": {
+      "message": "Could not find which Parro account should send the reply. Automations must choose the Parro account in the action."
+    },
+    "rate_limited": {
+      "message": "Too many replies. Wait a minute between replies to the same conversation. At most 5 replies per hour and 20 per day are sent."
+    },
+    "send_failed": {
+      "message": "The reply was not sent."
+    },
+    "send_refused": {
+      "message": "Parro refused the reply. Sending is paused for an hour."
+    },
+    "send_uncertain": {
+      "message": "Could not confirm that Parro received the reply. Check the conversation in Parro before you try again."
+    },
+    "sending_paused": {
+      "message": "Parro refused an earlier reply, so sending is paused for an hour."
+    },
+    "update_failed": {
+      "message": "Could not update Parro data: {error}"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "announcement_count": "Announcements to keep",
+          "chat_details": "Show conversation details",
+          "photo_count": "Recent photos",
+          "reply_conversations": "Conversations Home Assistant may reply to",
+          "update_interval": "Update interval"
+        },
+        "data_description": {
+          "announcement_count": "Number of recent announcements shown in the attributes of the latest announcement sensor.",
+          "chat_details": "Adds names and the last message of each conversation to the unread conversations sensor, and the sender and message to chat message events. Off by default for privacy.",
+          "photo_count": "Number of image entities with the most recent photos from announcements. 0 (off) by default, because class photos usually show other people's children.",
+          "reply_conversations": "One-to-one and family conversations that the Parro Send chat reply action may reply to, in plain text. None by default, which turns replies off. Only automations and the Home Assistant user of this account can send.",
+          "update_interval": "How often Parro is checked for new information."
+        },
+        "title": "Parro options"
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "description": "Sends a plain-text reply to a Parro conversation that is allowed in the options. At most one reply per conversation per minute, 5 per hour and 20 per day.",
+      "fields": {
+        "config_entry_id": {
+          "description": "The Parro account that sends the reply. Leave it empty to use your own Parro account. Automations must choose one.",
+          "name": "Parro account"
+        },
+        "conversation_id": {
+          "description": "The id of the conversation, from the conversations attribute of the unread conversations sensor or from the chat message event.",
+          "name": "Conversation"
+        },
+        "message": {
+          "description": "Plain text of up to 1000 characters and 20 lines. Links, e-mail addresses, HTML, markdown links and template code are refused.",
+          "name": "Message"
+        }
+      },
+      "name": "Send chat reply"
+    }
+  }
+}

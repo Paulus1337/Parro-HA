@@ -1,0 +1,17 @@
+{
+  "domain": "parro_ha",
+  "name": "Parro",
+  "categories": [
+    "messaging_notifications.chat_apps",
+    "productivity_information.calendars_todos"
+  ],
+  "codeowners": ["@Paulus1337"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "websocket_api"],
+  "documentation": "https://github.com/Paulus1337/Parro-HA",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Paulus1337/Parro-HA/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

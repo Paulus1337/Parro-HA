@@ -1,0 +1,53 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: home-assistant/actions/hassfest@master
+
+  brand-images:
+    name: Brand images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run hassfest and fail on brand image warnings
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/github/workspace" \
+            ghcr.io/home-assistant/hassfest:latest | tee hassfest.log
+          if grep -q '\[WARNING\] \[BRAND_IMAGES\]' hassfest.log; then
+            exit 1
+          fi
+
+  hacs:
+    name: HACS
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: integration

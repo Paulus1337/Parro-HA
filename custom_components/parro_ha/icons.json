@@ -1,0 +1,61 @@
+{
+  "entity": {
+    "calendar": {
+      "child_calendar": {
+        "default": "mdi:calendar-account"
+      },
+      "school_calendar": {
+        "default": "mdi:school"
+      }
+    },
+    "event": {
+      "announcement": {
+        "default": "mdi:bullhorn"
+      },
+      "chat_message": {
+        "default": "mdi:message-text"
+      }
+    },
+    "image": {
+      "child_photo": {
+        "default": "mdi:account-school"
+      },
+      "recent_photo": {
+        "default": "mdi:image-multiple"
+      }
+    },
+    "sensor": {
+      "class": {
+        "default": "mdi:google-classroom"
+      },
+      "latest_announcement": {
+        "default": "mdi:bullhorn-variant"
+      },
+      "next_event": {
+        "default": "mdi:calendar-star"
+      },
+      "unread_announcements": {
+        "default": "mdi:bullhorn-outline",
+        "range": {
+          "0": "mdi:bullhorn-outline",
+          "1": "mdi:bullhorn"
+        }
+      },
+      "unread_calendar_items": {
+        "default": "mdi:calendar-alert"
+      },
+      "unread_conversations": {
+        "default": "mdi:message-outline",
+        "range": {
+          "0": "mdi:message-outline",
+          "1": "mdi:message-alert"
+        }
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "service": "mdi:message-reply-text"
+    }
+  }
+}

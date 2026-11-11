@@ -1,0 +1,221 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Dit Parro-account is al ingesteld.",
+      "reauth_successful": "Opnieuw aangemeld."
+    },
+    "error": {
+      "account_locked": "Je Parro-account is geblokkeerd na te veel verkeerde wachtwoorden. Stel je wachtwoord opnieuw in op de aanmeldpagina van Parro of vraag het aan je school, en probeer het daarna opnieuw.",
+      "account_rejected": "Parro weigert toegang tot dit account. Controleer of het een Parro-ouderaccount is.",
+      "cannot_connect": "Parro is niet bereikbaar. Probeer het later opnieuw.",
+      "choice_expired": "Het kiezen van het account is niet gelukt, omdat de aanmeldpagina was verlopen. Meld je opnieuw aan.",
+      "invalid_auth": "Het e-mailadres, de gebruikersnaam of het wachtwoord klopt niet. ParnasSys blokkeert je account na een paar verkeerde wachtwoorden, dus controleer ze goed voordat je het opnieuw probeert.",
+      "invalid_auth_attempts": "Het e-mailadres, de gebruikersnaam of het wachtwoord klopt niet. Je hebt nog {attempts} pogingen voordat ParnasSys je account blokkeert.",
+      "login_changed": "De aanmeldpagina van Parro reageerde anders dan verwacht. Je wachtwoord is niet opnieuw geprobeerd. Probeer het later opnieuw. Blijft dit gebeuren, meld het dan in de issuetracker van Parro-HA.",
+      "missing_credentials": "Vul je e-mailadres (of gebruikersnaam) en je wachtwoord in.",
+      "not_a_parent": "Dit is geen ouder- of verzorgeraccount. Alleen ouderaccounts worden ondersteund.",
+      "sign_in_uncertain": "Parro heeft niet bevestigd of je wachtwoord is geaccepteerd. Controleer of je kunt aanmelden op talk.parro.com of in de Parro-app voordat je het hier opnieuw probeert.",
+      "two_factor": "Dit account gebruikt tweestapsverificatie, en dat ondersteunt Parro-HA niet. Gebruik een ouderaccount zonder tweestapsverificatie.",
+      "unknown": "Onverwachte fout. Bekijk de logboeken voor details.",
+      "wrong_account": "Je bent aangemeld met een ander Parro-account. Meld je aan met het account dat oorspronkelijk is ingesteld."
+    },
+    "step": {
+      "account": {
+        "data": {
+          "account": "Account"
+        },
+        "data_description": {
+          "account": "Je aanmelding hoort bij meer dan één Parro-account."
+        },
+        "description": "Kies het Parro-account dat je wilt gebruiken.",
+        "title": "Kies een account"
+      },
+      "reauth_confirm": {
+        "data": {
+          "password": "Wachtwoord",
+          "username": "E-mailadres of gebruikersnaam"
+        },
+        "data_description": {
+          "password": "Wordt één keer naar de officiële aanmeldpagina van Parro gestuurd en nooit opgeslagen.",
+          "username": "Het e-mailadres of de gebruikersnaam waarmee je bij Parro aanmeldt."
+        },
+        "description": "Je Parro-sessie is beëindigd. Meld je opnieuw aan met het e-mailadres (of de gebruikersnaam) en het wachtwoord van je Parro-account.\n\nParnasSys blokkeert een account na een paar verkeerde wachtwoorden. Home Assistant probeert een wachtwoord nooit zelf opnieuw.",
+        "title": "Opnieuw aanmelden bij Parro"
+      },
+      "user": {
+        "data": {
+          "password": "Wachtwoord",
+          "user": "Home Assistant-gebruiker",
+          "username": "E-mailadres of gebruikersnaam"
+        },
+        "data_description": {
+          "password": "Wordt één keer naar de officiële aanmeldpagina van Parro gestuurd en nooit opgeslagen.",
+          "user": "De Home Assistant-gebruiker van wie dit Parro-account is. De Parro-kaart toont dit account aan die gebruiker, en antwoorden van die gebruiker worden met dit account verstuurd.",
+          "username": "Het e-mailadres of de gebruikersnaam waarmee je bij Parro aanmeldt."
+        },
+        "description": "Parro-HA is een onofficieel opensource-hobbyproject. Het is niet gemaakt, goedgekeurd of ondersteund door Parro of ParnasSys.\n\nMeld je aan met het e-mailadres (of de gebruikersnaam) en het wachtwoord van je Parro-account. Die worden één keer verstuurd, alleen naar de officiële aanmeldpagina van ParnasSys, en nooit opgeslagen. Home Assistant bewaart een sessie die zichzelf vernieuwt.\n\nParnasSys blokkeert een account na een paar verkeerde wachtwoorden. Home Assistant probeert een wachtwoord nooit zelf opnieuw.",
+        "title": "Aanmelden bij Parro"
+      }
+    }
+  },
+  "entity": {
+    "calendar": {
+      "child_calendar": {
+        "name": "Agenda"
+      },
+      "school_calendar": {
+        "name": "Schoolagenda"
+      }
+    },
+    "event": {
+      "announcement": {
+        "name": "Bericht",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_announcement": "Nieuw bericht"
+            }
+          }
+        }
+      },
+      "chat_message": {
+        "name": "Chatbericht",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_chat_message": "Nieuw chatbericht"
+            }
+          }
+        }
+      }
+    },
+    "image": {
+      "child_photo": {
+        "name": "Foto"
+      },
+      "recent_photo": {
+        "name": "Recente foto {number}"
+      }
+    },
+    "sensor": {
+      "class": {
+        "name": "Groep"
+      },
+      "latest_announcement": {
+        "name": "Laatste bericht"
+      },
+      "next_event": {
+        "name": "Volgende activiteit"
+      },
+      "unread_announcements": {
+        "name": "Ongelezen berichten"
+      },
+      "unread_calendar_items": {
+        "name": "Ongelezen agenda-items"
+      },
+      "unread_conversations": {
+        "name": "Ongelezen gesprekken"
+      }
+    }
+  },
+  "exceptions": {
+    "authentication_failed": {
+      "message": "De Parro-sessie is beëindigd. Meld je opnieuw aan."
+    },
+    "calendar_failed": {
+      "message": "De Parro-agenda kon niet worden geladen."
+    },
+    "conversation_not_allowed": {
+      "message": "Antwoorden op dit gesprek is niet toegestaan. Kies het eerst in de Parro-opties."
+    },
+    "conversation_not_available": {
+      "message": "Op dit gesprek kan niet worden geantwoord. Dat kan alleen bij actieve een-op-een- en gezinsgesprekken waarin antwoorden aanstaat."
+    },
+    "duplicate_message": {
+      "message": "Hetzelfde bericht is de afgelopen 6 uur al naar dit gesprek gestuurd."
+    },
+    "entry_not_loaded": {
+      "message": "Dit Parro-account is niet geladen. Controleer of het is ingesteld en werkt."
+    },
+    "message_empty": {
+      "message": "Het bericht is leeg."
+    },
+    "message_link": {
+      "message": "Berichten met links of e-mailadressen worden voor de veiligheid niet verstuurd."
+    },
+    "message_markup": {
+      "message": "Alleen platte tekst wordt verstuurd, zonder HTML, code, markdown-links of templatecode. Laat backticks, backslashes, vierkante haken, accolades en HTML-tags weg."
+    },
+    "message_template": {
+      "message": "Het bericht lijkt op een onbekende waarde uit een template en is daarom niet verstuurd."
+    },
+    "message_too_long": {
+      "message": "Het bericht is langer dan 1000 tekens."
+    },
+    "message_too_many_lines": {
+      "message": "Het bericht heeft meer dan 20 regels."
+    },
+    "no_account": {
+      "message": "Kan niet bepalen welk Parro-account het antwoord moet versturen. Automatiseringen moeten het Parro-account in de actie kiezen."
+    },
+    "rate_limited": {
+      "message": "Te veel antwoorden. Wacht een minuut tussen antwoorden op hetzelfde gesprek. Er gaan maximaal 5 antwoorden per uur en 20 per dag uit."
+    },
+    "send_failed": {
+      "message": "Het antwoord is niet verstuurd."
+    },
+    "send_refused": {
+      "message": "Parro heeft het antwoord geweigerd. Versturen is een uur gepauzeerd."
+    },
+    "send_uncertain": {
+      "message": "Niet bevestigd dat Parro het antwoord heeft ontvangen. Kijk eerst in het gesprek in Parro voordat je het opnieuw probeert."
+    },
+    "sending_paused": {
+      "message": "Parro heeft een eerder antwoord geweigerd, daarom is versturen een uur gepauzeerd."
+    },
+    "update_failed": {
+      "message": "Parro-gegevens konden niet worden bijgewerkt: {error}"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "announcement_count": "Aantal berichten",
+          "chat_details": "Gespreksdetails tonen",
+          "photo_count": "Recente foto's",
+          "reply_conversations": "Gesprekken waarop Home Assistant mag antwoorden",
+          "update_interval": "Update-interval"
+        },
+        "data_description": {
+          "announcement_count": "Aantal recente berichten in de attributen van de sensor Laatste bericht.",
+          "chat_details": "Voegt namen en het laatste bericht van elk gesprek toe aan de sensor Ongelezen gesprekken, en de afzender en het bericht aan chatbericht-events. Standaard uit voor privacy.",
+          "photo_count": "Aantal afbeeldingsentiteiten met de meest recente foto's uit berichten. Standaard 0 (uit), omdat klassenfoto's meestal ook andermans kinderen laten zien.",
+          "reply_conversations": "Een-op-een- en gezinsgesprekken waarop de Parro-actie Chatantwoord versturen mag antwoorden, in platte tekst. Standaard geen, dus antwoorden staat uit. Alleen automatiseringen en de Home Assistant-gebruiker van dit account kunnen versturen.",
+          "update_interval": "Hoe vaak Parro wordt gecontroleerd op nieuwe informatie."
+        },
+        "title": "Parro-opties"
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "description": "Verstuurt een antwoord in platte tekst naar een Parro-gesprek dat in de opties is toegestaan. Maximaal één antwoord per gesprek per minuut, 5 per uur en 20 per dag.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Het Parro-account dat het antwoord verstuurt. Laat dit leeg om je eigen Parro-account te gebruiken. Automatiseringen moeten er een kiezen.",
+          "name": "Parro-account"
+        },
+        "conversation_id": {
+          "description": "Het id van het gesprek, uit het attribuut conversations van de sensor Ongelezen gesprekken of uit het chatbericht-event.",
+          "name": "Gesprek"
+        },
+        "message": {
+          "description": "Platte tekst van maximaal 1000 tekens en 20 regels. Links, e-mailadressen, HTML, markdown-links en templatecode worden geweigerd.",
+          "name": "Bericht"
+        }
+      },
+      "name": "Chatantwoord versturen"
+    }
+  }
+}

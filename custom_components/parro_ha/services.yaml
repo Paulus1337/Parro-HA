@@ -1,0 +1,17 @@
+send_message:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: parro_ha
+    conversation_id:
+      required: true
+      example: "123456"
+      selector:
+        text:
+    message:
+      required: true
+      example: "Thank you, see you tomorrow."
+      selector:
+        text:
+          multiline: true

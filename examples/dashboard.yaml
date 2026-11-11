@@ -1,0 +1,11 @@
+title: School
+views:
+  - title: School
+    path: school
+    icon: mdi:school
+    type: sections
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:parro-card

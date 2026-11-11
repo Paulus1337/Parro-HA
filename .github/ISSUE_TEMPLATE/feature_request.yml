@@ -1,0 +1,14 @@
+name: Feature request
+description: Suggest an improvement.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Issues are public. Do not include personal data about children, parents or teachers.
+  - type: textarea
+    id: request
+    attributes:
+      label: What would you like?
+      description: Describe the problem you want to solve and how you would like it to work.
+    validations:
+      required: true
