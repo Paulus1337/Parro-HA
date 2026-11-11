@@ -105,11 +105,11 @@ In the dashboard editor, select **Add card** and pick **Parro**. In YAML it is `
 If the card is missing right after installing or updating Parro-HA, reload the page or restart the Home Assistant app. The list of conversations and the reply form need **Show conversation details**. The list shows the 10 most recent conversations, and the form only offers those of them that Home Assistant may reply to; reply to the others with the [Send chat reply](#sending-chat-replies) action. Recent photos only show when **Recent photos** is set in the Parro options.
 
 > [!NOTE]
-> Parro texts are written by other people, so never put them into a Markdown card unescaped: an image link or HTML in an announcement would make every browser that opens the dashboard load an image from someone else's server. The Parro card escapes every Parro text with `replace('<', '&lt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;')`, so it shows exactly as written and can hold no links in disguise. Do the same in your own Markdown cards.
+> Parro texts are written by other people, so never put them into a Markdown card unescaped: an image link or HTML in an announcement would make every browser that opens the dashboard load an image from someone else's server. The Parro card escapes every Parro text with `` replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') ``, so it shows exactly as written and can hold no links, HTML or code. Do the same in your own Markdown cards.
 
 ## Example dashboard
 
-[`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard built from the Parro entities: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the child's photo, class and calendar, the coming activities, the announcements, the recent photos, the school calendar and the conversations. It escapes every Parro text as described above, and also keeps web and e-mail addresses from becoming links. The screenshots show made-up data.
+[`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard built from the Parro entities: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the child's photo, class and calendar, the coming activities, the announcements, the recent photos, the school calendar and the conversations. It escapes every Parro text as described above. The screenshots show made-up data.
 
 ![The example dashboard on a laptop](examples/dashboard-laptop.png)
 

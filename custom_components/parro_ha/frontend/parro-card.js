@@ -71,14 +71,14 @@ const el = (tag, props, ...children) => {
 };
 const valid = (id) => (typeof id === "string" && /^[a-z0-9_]+\.[a-z0-9_]+$/.test(id) ? id : null);
 const quote = JSON.stringify;
-const esc = (value) =>
-  `(${value} or '') | replace('<', '&lt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;')`;
+const ESCAPES = [["<", "&lt;"], [">", "&gt;"], ["[", "&#91;"], ["_", "&#95;"], ["*", "&#42;"], ["`", "&#96;"], ["\\\\", "&#92;"], [":", "&#58;"], ["@", "&#64;"], ["www.", "www&#46;"]];
+const esc = (value) => `(${value} or '')` + ESCAPES.map(([from, to]) => ` | replace('${from}', '${to}')`).join("");
 const announcements = (id, t) =>
   `{%- for item in state_attr('${id}', 'announcements') or [] %}\n\n**{{ ${esc("item.title")} }}**` +
   `{{ ${quote(` (${t.new})`)} if not item.read }}\n_{{ ${esc("item.group")} }}, {{ ${esc("item.author")} }}` +
   `{% if item.published %}, {{ as_timestamp(item.published) | timestamp_custom(${quote(t.date)}) }}{% endif %}` +
   `{% if item.photos %}, {{ item.photos }} {{ ${quote(t.photo)} if item.photos == 1 else ${quote(t.photos)} }}` +
-  `{% endif %}_\n{{ ${esc("item.text")} | truncate(280) }}\n{%- else %}\n${t.noAnnouncements}\n{%- endfor %}`;
+  `{% endif %}_\n{{ ${esc("(item.text or '') | truncate(280)")} }}\n{%- else %}\n${t.noAnnouncements}\n{%- endfor %}`;
 const conversations = (id, t) =>
   `{%- for item in state_attr('${id}', 'conversations') or [] %}\n\n` +
   `**{{ ${esc(`item.name or ${quote(t.conversation)}`)} }}**{{ " (" ~ item.unread ~ ${quote(` ${t.unread})`)} ` +
