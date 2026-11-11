@@ -109,7 +109,11 @@ If the card is missing right after installing or updating Parro-HA, reload the p
 
 ## Example dashboard
 
-[`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard built from the Parro entities: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the child's photo, class and calendar, the coming activities, the announcements, the recent photos, the school calendar and the conversations. It escapes every Parro text as described above, and also keeps web and e-mail addresses from becoming links.
+[`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard built from the Parro entities: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the child's photo, class and calendar, the coming activities, the announcements, the recent photos, the school calendar and the conversations. It escapes every Parro text as described above, and also keeps web and e-mail addresses from becoming links. The screenshots show made-up data.
+
+![The example dashboard on a laptop](examples/dashboard-laptop.png)
+
+![The example dashboard on a tablet and a phone](examples/dashboard-tablet-phone.png)
 
 1. Replace `alex` in the entity IDs with the start of your child's entity IDs, and `Alex` with your child's name. For more children, copy the first section. With Home Assistant in Dutch, use the Dutch entity IDs from [Entities](#entities).
 2. In the Parro [options](#options), set **Recent photos** to 6 for the photo cards and turn on **Show conversation details** for the list of conversations, or leave those cards out. Both options are off by default for privacy.
