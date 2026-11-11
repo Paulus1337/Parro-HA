@@ -133,6 +133,8 @@ actions:
 
 Each parent signs in with their own Parro account. One shared dashboard then shows every parent their own announcements, conversations and calendars, and replies go out under their own name.
 
+Home Assistant gives every entity one value for everyone, so each Parro account has its own entities. The [Parro card](#parro-card) is what makes one dashboard personal: it shows every viewer the entities of their own account, and users without a Parro account of their own only a short note. Any other card that names a Parro entity shows that account to everyone who opens the dashboard, so give it a visibility condition for its parent (**Visibility > User** in the card editor) or leave it out.
+
 The stored Home Assistant user ID decides whose Parro account is used, not who can see the data: Home Assistant still lets every user read every entity (see [Privacy and security](#privacy-and-security)).
 
 1. An administrator opens **Settings > Devices & services > Add integration > Parro**, because only administrators can add integrations. There the parent enters the e-mail address (or username) and password of their own Parro account, picks their own Home Assistant user under **Home Assistant user** in the same form, and then selects **Submit**. Repeat this for the other parent, and rename the second Parro entry and its device as described in [More than one Parro account](#more-than-one-parro-account).
