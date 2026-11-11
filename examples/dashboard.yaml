@@ -4,8 +4,294 @@ views:
     path: school
     icon: mdi:school
     type: sections
+    max_columns: 3
+    header:
+      card:
+        type: markdown
+        text_only: true
+        content: |-
+          {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+          {%- set hour = now().hour -%}
+          # {{ 'Good morning' if hour < 12 else 'Good afternoon' if hour < 18 else 'Good evening' }}
+          {%- set raw = states('sensor.parro_next_event') %}
+          {%- set title = state_attr('sensor.parro_next_event', 'title') %}
+          {%- set start = as_datetime(raw, none) if raw not in ['unknown', 'unavailable'] else none %}
+          {%- if title and start %}
+          {%- set start = as_local(start) %}
+          {%- set d = (start.date() - now().date()).days %}
+
+          Next at school: **{{ safe(title) }}**, {{ 'today' if d <= 0 else 'tomorrow' if d == 1 else start.strftime('%A %-d %B') }}{{ '' if state_attr('sensor.parro_next_event', 'all_day') or d < 0 else ' at ' ~ start.strftime('%H:%M') }}
+          {%- endif %}
+      layout: responsive
+      badges_position: bottom
+    badges:
+      - type: entity
+        entity: sensor.parro_unread_announcements
+        name: Announcements
+        show_name: true
+        show_icon: true
+        show_state: true
+        tap_action:
+          action: more-info
+      - type: entity
+        entity: sensor.parro_unread_conversations
+        name: Conversations
+        show_name: true
+        show_icon: true
+        show_state: true
+      - type: entity
+        entity: sensor.parro_next_event
+        name: Next event
+        show_name: true
+        show_icon: true
+        show_state: true
     sections:
       - type: grid
-        column_span: 4
         cards:
-          - type: custom:parro-card
+          - type: heading
+            heading: Alex
+            icon: mdi:account-school
+            heading_style: title
+          - type: picture-entity
+            entity: image.alex_photo
+            show_name: false
+            show_state: false
+            aspect_ratio: '1'
+            fit_mode: cover
+            grid_options:
+              columns: 4
+              rows: 2
+            visibility:
+              - condition: state
+                entity: image.alex_photo
+                state_not:
+                  - unknown
+                  - unavailable
+          - type: tile
+            entity: sensor.alex_class
+            name: Class
+            icon: mdi:human-male-board
+            grid_options:
+              columns: 8
+              rows: 1
+          - type: markdown
+            content: |-
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- set msg = state_attr('calendar.alex_calendar', 'message') %}
+              {%- set st = state_attr('calendar.alex_calendar', 'start_time') %}
+              {%- set start = as_datetime(st, none) if st else none %}
+              {%- if msg and start %}
+              {%- set d = (start.date() - now().date()).days %}
+              **Next:** {{ safe(msg) }}<br><small>{{ 'Today' if d <= 0 else 'Tomorrow' if d == 1 else start.strftime('%A %-d %B') }}{{ '' if state_attr('calendar.alex_calendar', 'all_day') or d < 0 else ', ' ~ start.strftime('%H:%M') }}</small>
+              {%- else %}
+              {{ 'Nothing planned for Alex.' if has_value('calendar.alex_calendar') else 'Parro is not available.' }}
+              {%- endif %}
+            grid_options:
+              columns: 8
+          - type: calendar
+            entities:
+              - calendar.alex_calendar
+            initial_view: listWeek
+            grid_options:
+              columns: 12
+              rows: 9
+      - type: grid
+        cards:
+          - type: heading
+            heading: Coming up
+            icon: mdi:calendar-clock
+            heading_style: title
+          - type: markdown
+            content: |-
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- set events = state_attr('sensor.parro_next_event', 'upcoming') -%}
+              {%- set ns = namespace(day='') -%}
+              {%- for e in (events or [])[:8] -%}
+              {%- set raw = as_datetime(e.start, none) -%}
+              {%- if raw -%}
+              {%- set start = as_local(raw) -%}
+              {%- set d = (start.date() - now().date()).days -%}
+              {%- set day = 'Today' if d <= 0 else 'Tomorrow' if d == 1 else start.strftime('%A %-d %B') -%}
+              {%- if day != ns.day %}
+              {%- set ns.day = day %}
+
+              **{{ day }}**
+              {%- endif %}
+              - {{ 'All day' if e.all_day else ('Ongoing' if d < 0 else start.strftime('%H:%M')) }}: {{ safe(e.title) }}{% if e.groups and e.groups | length <= 2 %} <small>({{ safe(e.groups | join(', ')) }})</small>{% endif %}
+              {%- endif -%}
+              {%- else %}
+              {{ 'Nothing planned.' if events is not none else 'Parro is not available.' }}
+              {%- endfor %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Announcements
+            icon: mdi:bullhorn
+            heading_style: title
+          - type: markdown
+            content: |-
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- set items = state_attr('sensor.parro_latest_announcement', 'announcements') -%}
+              {%- for item in items or [] -%}
+              {%- set ts = as_timestamp(item.published, 0) if item.published else 0 -%}
+              {%- set when = ts | timestamp_custom('%a %-d %b, %H:%M') if ts else '' -%}
+              {%- set meta = safe([item.group, item.author, when] | select | join(', ')) -%}
+              {%- set files = (item.attachments or 0) - (item.photos or 0) -%}
+              {%- set flags = [('New' if not item.read else ''), ('Pinned' if item.pinned else ''), ((item.photos ~ (' photo' if item.photos == 1 else ' photos')) if item.photos else ''), ((files ~ (' attachment' if files == 1 else ' attachments')) if files > 0 else '')] | select | join(', ') -%}
+              {%- if loop.first %}
+              ### {{ safe(item.title) }}
+              <small>{{ meta }}{{ (', ' ~ flags) if flags else '' }}</small>
+
+              {{ safe(item.text) }}
+
+              <hr>
+              {%- else %}
+              <details><summary><b>{{ safe(item.title) }}</b><br><small>{{ meta }}{{ (', ' ~ flags) if flags else '' }}</small></summary>
+
+              {{ safe(item.text) }}
+
+              </details>
+              {%- endif %}
+              {%- else %}
+              {{ 'No announcements yet.' if items is not none else 'Parro is not available.' }}
+              {%- endfor %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Photos
+            icon: mdi:image-multiple
+            heading_style: title
+            visibility:
+              - condition: state
+                entity: image.parro_recent_photo_1
+                state_not:
+                  - unknown
+                  - unavailable
+          - type: picture-entity
+            entity: image.parro_recent_photo_1
+            show_name: false
+            show_state: false
+            aspect_ratio: '1'
+            fit_mode: cover
+            grid_options:
+              columns: 6
+            visibility:
+              - condition: state
+                entity: image.parro_recent_photo_1
+                state_not:
+                  - unknown
+                  - unavailable
+          - type: picture-entity
+            entity: image.parro_recent_photo_2
+            show_name: false
+            show_state: false
+            aspect_ratio: '1'
+            fit_mode: cover
+            grid_options:
+              columns: 6
+            visibility:
+              - condition: state
+                entity: image.parro_recent_photo_2
+                state_not:
+                  - unknown
+                  - unavailable
+          - type: picture-entity
+            entity: image.parro_recent_photo_3
+            show_name: false
+            show_state: false
+            aspect_ratio: '1'
+            fit_mode: cover
+            grid_options:
+              columns: 6
+            visibility:
+              - condition: state
+                entity: image.parro_recent_photo_3
+                state_not:
+                  - unknown
+                  - unavailable
+          - type: picture-entity
+            entity: image.parro_recent_photo_4
+            show_name: false
+            show_state: false
+            aspect_ratio: '1'
+            fit_mode: cover
+            grid_options:
+              columns: 6
+            visibility:
+              - condition: state
+                entity: image.parro_recent_photo_4
+                state_not:
+                  - unknown
+                  - unavailable
+          - type: picture-entity
+            entity: image.parro_recent_photo_5
+            show_name: false
+            show_state: false
+            aspect_ratio: '1'
+            fit_mode: cover
+            grid_options:
+              columns: 6
+            visibility:
+              - condition: state
+                entity: image.parro_recent_photo_5
+                state_not:
+                  - unknown
+                  - unavailable
+          - type: picture-entity
+            entity: image.parro_recent_photo_6
+            show_name: false
+            show_state: false
+            aspect_ratio: '1'
+            fit_mode: cover
+            grid_options:
+              columns: 6
+            visibility:
+              - condition: state
+                entity: image.parro_recent_photo_6
+                state_not:
+                  - unknown
+                  - unavailable
+      - type: grid
+        cards:
+          - type: heading
+            heading: School calendar
+            icon: mdi:calendar-month
+            heading_style: title
+          - type: calendar
+            entities:
+              - calendar.parro_school_calendar
+            initial_view: dayGridMonth
+            grid_options:
+              columns: 12
+              rows: 10
+      - type: grid
+        cards:
+          - type: heading
+            heading: Conversations
+            icon: mdi:forum
+            heading_style: title
+          - type: tile
+            entity: sensor.parro_unread_conversations
+            name: Unread conversations, tap to open Parro
+            tap_action:
+              action: url
+              url_path: https://talk.parro.com
+            icon_tap_action:
+              action: more-info
+            grid_options:
+              columns: 12
+          - type: markdown
+            content: |-
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- set rooms = state_attr('sensor.parro_unread_conversations', 'conversations') -%}
+              {%- set labels = {'bot': 'Parro', 'family': 'Family conversation', 'single': 'Conversation', 'group': 'Group conversation', 'calendar': 'Calendar'} -%}
+              {%- for r in rooms or [] -%}
+              {%- set ts = as_timestamp(r.last_message_at, 0) if r.last_message_at else 0 -%}
+              {%- set when = ts | timestamp_custom('%a %-d %b, %H:%M') if ts else '' -%}
+              {%- set meta = [r.last_sender, when] | select | join(', ') -%}
+              {%- set text = (r.preview or '') | replace('\n', ' ') | replace('\r', ' ') | trim -%}
+              <b>{{ safe(r.name or labels.get(r.type, 'Conversation')) }}</b>{% if r.unread %} <small>({{ r.unread }} unread)</small>{% endif %}{% if meta %}<br><small>{{ safe(meta) }}</small>{% endif %}{% if text %}<br>{{ safe(text | truncate(140)) }}{% endif %}
+              {% if not loop.last %}<hr>{% endif %}
+              {%- else %}
+              {{ 'No conversations.' if rooms is not none else 'Turn on Show conversation details in the Parro options.' if has_value('sensor.parro_unread_conversations') else 'Parro is not available.' }}
+              {%- endfor %}

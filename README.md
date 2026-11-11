@@ -84,6 +84,8 @@ Every Parro entry and its account device are named Parro. If you add more than o
 
 ### Options
 
+To change the options, go to **Settings > Devices & services > Parro** and select **Configure** (the cogwheel) next to the Parro entry.
+
 | Option | Default | What it does |
 | --- | --- | --- |
 | Update interval | 10 min | How often Parro is checked (5 to 120 minutes). |
@@ -98,13 +100,22 @@ Changing an option reloads the integration.
 
 The integration makes the **Parro card** available on every dashboard. It fills itself with the Parro account of the user who looks at it: the unread counters, the recent announcements and conversations, the next calendar item and the school calendar, each child's photo and class, and the recent photos. It finds the entities itself, in every language and after renames, and leaves out what is turned off. It adapts to phones, tablets and desktops.
 
-- In the dashboard editor, select **Add card** and pick **Parro**. In YAML it is `type: custom:parro-card`, without options.
-- Or use [`examples/dashboard.yaml`](examples/dashboard.yaml), a dashboard with one view that shows the card at full width. Go to **Settings > Dashboards > Add dashboard > New dashboard from scratch** and open the dashboard. Select **Edit dashboard** (the pencil at the top, or in the three-dot menu on a narrow screen), then open the three-dot menu and select **Raw configuration editor**. Paste the file and save.
+In the dashboard editor, select **Add card** and pick **Parro**. In YAML it is `type: custom:parro-card`, without options.
 
 If the card is missing right after installing or updating Parro-HA, reload the page or restart the Home Assistant app. The list of conversations and the reply form need **Show conversation details**. The list shows the 10 most recent conversations, and the form only offers those of them that Home Assistant may reply to; reply to the others with the [Send chat reply](#sending-chat-replies) action. Recent photos only show when **Recent photos** is set in the Parro options.
 
 > [!NOTE]
 > Parro texts are written by other people, so never put them into a Markdown card unescaped: an image link or HTML in an announcement would make every browser that opens the dashboard load an image from someone else's server. The Parro card escapes every Parro text with `replace('<', '&lt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;')`, so it shows exactly as written and can hold no links in disguise. Do the same in your own Markdown cards.
+
+## Example dashboard
+
+[`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard built from the Parro entities: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the child's photo, class and calendar, the coming activities, the announcements, the recent photos, the school calendar and the conversations. It escapes every Parro text as described above, and also keeps web and e-mail addresses from becoming links.
+
+1. Replace `alex` in the entity IDs with the start of your child's entity IDs, and `Alex` with your child's name. For more children, copy the first section. With Home Assistant in Dutch, use the Dutch entity IDs from [Entities](#entities).
+2. In the Parro [options](#options), set **Recent photos** to 6 for the photo cards and turn on **Show conversation details** for the list of conversations, or leave those cards out. Both options are off by default for privacy.
+3. Go to **Settings > Dashboards > Add dashboard > New dashboard from scratch** and open the dashboard. Select **Edit dashboard** (the pencil at the top, or in the three-dot menu on a narrow screen), then open the three-dot menu and select **Raw configuration editor**. Replace the text with the content of the file and save.
+
+The example shows one Parro account to everyone who opens it. For several parents, see [Several parents](#several-parents).
 
 ## Notifications
 
@@ -278,7 +289,7 @@ If `configuration.yaml` already has a `recorder:` section, add these lines to it
 
 ## Removal
 
-1. Remove the Parro card from your dashboards; without the integration it shows an error.
+1. Remove the Parro card and any other card or badge that names a Parro entity from your dashboards, and delete a dashboard made from the example in **Settings > Dashboards**; without the integration they show errors.
 2. Delete the Parro entry in **Settings > Devices & services**. This removes the stored session, its Home Assistant user ID and the reply limits, and asks ParnasSys to end the session.
 3. Remove the integration in the Marketplace or HACS, or delete `custom_components/parro_ha`.
 
