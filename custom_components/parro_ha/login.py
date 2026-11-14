@@ -164,7 +164,7 @@ def _asks_one_time_code(html: str) -> bool:
 
 
 def _rejection(html: str) -> ParroLoginError:
-    message = " ".join(_text(body) for _, body in _FEEDBACK.findall(html))
+    message = " ".join(text for _, body in _FEEDBACK.findall(html) if (text := _text(body)))
     attempts = int(match.group(1)) if (match := _ATTEMPTS.search(message)) else None
     if not message:
         return ParroLoginError("sign_in_uncertain")

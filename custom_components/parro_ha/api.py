@@ -51,7 +51,7 @@ CALENDAR_DTYPE = "event.RCalendarItemEventPrimer"
 HOME_GROUP_DTYPE = "identity.RHomeGroup"
 CHAT_MESSAGE_DTYPE = "chat.RChatTextMessage"
 _CONTENT_RANGE = re.compile(r"items\s+\d{1,9}-(\d{1,9})/")
-REQUEST_ERRORS = (aiohttp.ClientError, TimeoutError, ValueError)
+REQUEST_ERRORS = (aiohttp.ClientError, TimeoutError, ValueError, RuntimeError)
 _ERROR_CODE = re.compile(r"[A-Z][A-Z0-9_]{2,63}|[a-z][a-z_]{2,39}")
 
 
@@ -262,12 +262,18 @@ class ParroClient:
         self._token_lock = asyncio.Lock()
         self._renewals: set[asyncio.Future[None]] = set()
         self._guardian_id: int | None = None
+        self._closed = False
 
     @property
     def tokens(self) -> TokenSet:
         return self._tokens
 
+    def _check_open(self) -> None:
+        if self._closed:
+            raise ParroConnectionError("The Parro connection is closed")
+
     async def async_ensure_token(self, rejected: str | None = None) -> None:
+        self._check_open()
         if rejected is None and not self._token_lock.locked() and not self._tokens.expires_within(TOKEN_REFRESH_MARGIN):
             return
         renewal = asyncio.ensure_future(self._async_renew(rejected))
@@ -281,12 +287,14 @@ class ParroClient:
         if not renewal.cancelled():
             renewal.exception()
 
-    async def async_settle(self) -> None:
+    async def async_close(self) -> None:
+        self._closed = True
         async with self._token_lock:
             return
 
     async def _async_renew(self, rejected: str | None) -> None:
         async with self._token_lock:
+            self._check_open()
             tokens = self._tokens
             stale = tokens.expires_within(TOKEN_REFRESH_MARGIN) if rejected is None else rejected == tokens.access_token
             if not stale:

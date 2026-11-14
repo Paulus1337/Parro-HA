@@ -17,9 +17,13 @@ _UNREAD_KEYS = (
 )
 
 
+def _clean(value: str) -> str:
+    return value.encode(errors="ignore").decode().strip()
+
+
 def _str(data: Mapping[str, Any], key: str) -> str:
     value = data.get(key)
-    return value.strip() if isinstance(value, str) else ""
+    return _clean(value) if isinstance(value, str) else ""
 
 
 def _int(value: Any) -> int | None:
@@ -36,7 +40,7 @@ def _mappings(value: Any) -> list[Mapping[str, Any]]:
 
 def _strings(value: Any) -> tuple[str, ...]:
     items = value if isinstance(value, list) else []
-    return tuple(item.strip() for item in items if isinstance(item, str) and item.strip())
+    return tuple(text for item in items if isinstance(item, str) and (text := _clean(item)))
 
 
 def _self_id(data: Mapping[str, Any]) -> int | None:
@@ -321,5 +325,6 @@ class ParroUnreadCounts:
     @classmethod
     def from_api(cls, rows: list[Mapping[str, Any]], guardian_id: int | None) -> ParroUnreadCounts:
         fallback = rows[0] if len(rows) == 1 else {}
-        row = next((row for row in rows if _self_id(_mapping(row.get("guardian"))) == guardian_id), fallback)
+        known = rows if guardian_id is not None else []
+        row = next((row for row in known if _self_id(_mapping(row.get("guardian"))) == guardian_id), fallback)
         return cls(*(_int(row.get(key)) or 0 for key in _UNREAD_KEYS))

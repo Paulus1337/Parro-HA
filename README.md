@@ -1,4 +1,3 @@
-<!-- ha-marketplace:exclude-start -->
 <p align="center">
   <img src="https://raw.githubusercontent.com/Paulus1337/Parro-HA/main/custom_components/parro_ha/brand/icon@2x.png" alt="Parro-HA icon" width="128">
 </p>
@@ -17,7 +16,6 @@
   <a href="https://github.com/Paulus1337/Parro-HA/actions/workflows/validate.yml"><img src="https://img.shields.io/github/actions/workflow/status/Paulus1337/Parro-HA/validate.yml?branch=main&style=flat-square&label=validate" alt="Validate"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Paulus1337/Parro-HA?style=flat-square" alt="License: MIT"></a>
 </p>
-<!-- ha-marketplace:exclude-end -->
 
 > [!IMPORTANT]
 > **Unofficial open-source hobby project.** Parro-HA is made by volunteers in their spare time. It is not made, endorsed or supported by Parro, ParnasSys or Topicus, and it is not an official Parro app. It uses the same private API as the Parro apps, which can change at any time. Please do not contact Parro or your school about it; use the [issue tracker](https://github.com/Paulus1337/Parro-HA/issues) instead.
@@ -48,7 +46,6 @@
 3. Add the Parro card to a dashboard: in the dashboard editor, select **Add card** and pick **Parro** (see [Parro card](#parro-card)).
 4. Optional: get a notification for every new announcement, as described under [Notifications](#notifications).
 
-<!-- ha-marketplace:exclude-start -->
 ## Installation
 
 ### Marketplace or HACS (recommended)
@@ -62,7 +59,6 @@
 
 1. Copy `custom_components/parro_ha` into the `custom_components` folder of your Home Assistant configuration.
 2. Restart Home Assistant.
-<!-- ha-marketplace:exclude-end -->
 
 ## Setup
 
@@ -98,14 +94,14 @@ Changing an option reloads the integration.
 
 ## Parro card
 
-The integration makes the **Parro card** available on every dashboard. It fills itself with the Parro account of the user who looks at it: the unread counters, the recent announcements and conversations, the next calendar item and the school calendar, each child's photo and class, and the recent photos. It finds the entities itself, in every language and after renames, and leaves out what is turned off. It adapts to phones, tablets and desktops.
+The integration makes the **Parro card** available on every dashboard. It fills itself with the Parro account of the user who looks at it: the unread counters, the recent announcements and conversations, the next calendar item and the school calendar, each child's photo and class, and the recent photos. It finds the entities itself, in every language and after renames, follows changes without a page reload, and leaves out what is turned off and photos that are not available. It adapts to phones, tablets and desktops.
 
 In the dashboard editor, select **Add card** and pick **Parro**. In YAML it is `type: custom:parro-card`, without options.
 
-If the card is missing right after installing or updating Parro-HA, reload the page or restart the Home Assistant app. The list of conversations and the reply form need **Show conversation details**. The list shows the 10 most recent conversations, and the form only offers those of them that Home Assistant may reply to; reply to the others with the [Send chat reply](#sending-chat-replies) action. Recent photos only show when **Recent photos** is set in the Parro options.
+If the card is missing right after installing or updating Parro-HA, reload the page or restart the Home Assistant app. The list of conversations and the reply form need **Show conversation details**. The list shows the 10 most recent conversations, and the form only offers those of them that Home Assistant may reply to; reply to the others with the [Send chat reply](#sending-chat-replies) action. If the conversation you picked leaves the list while you type, the form empties itself, so a reply never goes to another conversation. Errors are shown in your language. Recent photos only show when **Recent photos** is set in the Parro options.
 
 > [!NOTE]
-> Parro texts are written by other people, so never put them into a Markdown card unescaped: an image link or HTML in an announcement would make every browser that opens the dashboard load an image from someone else's server. The Parro card escapes every Parro text with `` replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') ``, so it shows exactly as written and can hold no links, HTML or code. Do the same in your own Markdown cards.
+> Parro texts are written by other people, so never put them into a Markdown card unescaped: an image link or HTML in an announcement would make every browser that opens the dashboard load an image from someone else's server, and a line of `~~~` would turn everything after it into code. The Parro card escapes every Parro text with `` replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('~', '&#126;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') | replace('\r\n', '<br>') | replace('\r', '<br>') | replace('\n', '<br>') `` and never starts a line with it, so it shows exactly as written and can hold no links, HTML, headings, lists, tables or code. Do the same in your own Markdown cards: escape every Parro text, and put it after other text or between `<span>` and `</span>`, never at the start of a line.
 
 ## Example dashboard
 
@@ -143,6 +139,7 @@ actions:
 - Replace `notify.mobile_app_your_phone` with the notify action of your own phone. Do not use `notify.notify`: it sends to every phone with the Home Assistant app.
 - With Home Assistant in Dutch, the entity is `event.parro_bericht`.
 - Keep the condition and `mode: queued`. [Events](#events) explains why.
+- Home Assistant keeps the title and message of every notification in the history and in the automation trace. [Keep Parro data out of the history](#keep-parro-data-out-of-the-history) shows how to leave them out.
 
 ## Several parents
 
@@ -189,14 +186,14 @@ The integration creates a **Parro** device for your account and a device for eac
 | `event.parro_chat_message` | `event.parro_chatbericht` | Parro | Fires `new_chat_message` with `conversation_id`, `conversation_type` and `received`, plus `sender` and `preview` with conversation details on. Only when conversation details or replies are on; it is removed when both are off. |
 | `image.parro_recent_photo_1` and up | `image.parro_recente_foto_1` and up | Parro | The most recent photos from announcements, newest first. Only when *Recent photos* is set in the options. |
 | `image.<child>_photo` | `image.<child>_foto` | Child | Profile photo of the child. |
-| `sensor.<child>_class` | `sensor.<child>_groep` | Child | The child's class, with the school year and unread announcements. |
+| `sensor.<child>_class` | `sensor.<child>_groep` | Child | The child's class. Attributes: `school_year`, `unread_announcements` and the title and time of the class's newest announcement (`last_announcement`, `last_announcement_at`). |
 | `calendar.<child>_calendar` | `calendar.<child>_agenda` | Child | Calendar items for this child. |
 
-Home Assistant creates the entity IDs once, in its own language (**Settings > System > General**): Dutch IDs when Home Assistant is set to Dutch, English IDs in every other language. Changing the language later does not change them. The IDs of child entities start with the child's first name, and an ID that is already taken gets `_2` at the end. Use your own entity IDs wherever this README shows one.
+Home Assistant creates the entity IDs once, in its own language (**Settings > System > General**, called *Home information* in newer versions): Dutch IDs when Home Assistant is set to Dutch, English IDs in every other language. Changing the language later does not change them. The IDs of child entities start with the child's first name, and an ID that is already taken gets `_2` at the end. Use your own entity IDs wherever this README shows one.
 
 ## Sending chat replies
 
-The **Send chat reply** action (`parro_ha.send_message`) sends a plain-text reply to a one-to-one or family conversation that you allowed in the options. The message must be plain text of up to 1000 characters and 20 lines. Links, e-mail addresses, HTML tags and HTML entities such as `&amp;`, backticks, backslashes, square and curly brackets (so also markdown links and template code), values such as `unavailable` and empty messages are refused, and a refused message is never shortened or sent in part. The same message is not sent twice to a conversation within 6 hours.
+The **Send chat reply** action (`parro_ha.send_message`) sends a plain-text reply to a one-to-one or family conversation that you allowed in the options. The message must be plain text of up to 1000 characters and 20 lines. Links, e-mail addresses, HTML tags and HTML entities such as `&amp;`, backticks, backslashes, square and curly brackets (so also markdown links and template code), values such as `unavailable` and empty messages are refused, and a refused message is never shortened or sent in part. The same message is not sent twice to a conversation within 6 hours, also when Parro did not confirm the first one: if it did not arrive, word it differently.
 
 ```yaml
 action: parro_ha.send_message
@@ -224,20 +221,20 @@ This integration handles data about children, so it is built to expose as little
 - **Replies only where you allow them.** The only thing the integration ever sends is a chat reply in plain text, without links, e-mail addresses, HTML or code. It only goes to one-to-one and family conversations that you chose in the options. Only the Home Assistant user the account belongs to, or something that runs without a user such as an automation, can send it. Each account sends at most 5 replies per hour and 20 per day, and at most one per minute to the same conversation.
 - **No media links.** Photos are downloaded over a verified (TLS) connection, only from Parro's own media hosts, and only shown through Home Assistant's image proxy. Parro media links never appear in entity attributes or logs.
 - **Recent photos are opt-in.** Class photos usually show other people's children, so recent photos are off until you turn them on. Only your own children's profile photos are on by default.
-- **Less in your history.** Announcement titles and texts, author and sender names, conversation names, the chat texts shown in Parro entities and calendar item titles are excluded from the recorder database. The history does keep some details, and Home Assistant itself records the text of every reply you send. [What Home Assistant stores](#what-home-assistant-stores) lists both, and [Keep Parro data out of the history](#keep-parro-data-out-of-the-history) shows how to leave them out.
+- **Less in your history.** Announcement titles and texts, author and sender names, conversation names, the chat texts shown in Parro entities and calendar item titles are excluded from the recorder database. The history does keep some details, and Home Assistant itself records every action call, such as the text of a reply you send or of a notification an automation sends. [What Home Assistant stores](#what-home-assistant-stores) lists both, and [Keep Parro data out of the history](#keep-parro-data-out-of-the-history) shows how to leave them out.
 - **Other parents stay anonymous.** Conversation details are off by default. When they are on, group conversations show their title and a member count, never the names of other parents.
-- **Safe diagnostics and logs.** Diagnostics only contain counts and settings, so they can be shared in bug reports. Logs and error messages never contain passwords, tokens, sign-in codes or links, media links, names or message texts.
+- **Safe diagnostics and logs.** The Parro part of the diagnostics only contains counts, settings and session lifetimes. Home Assistant adds its own version, system details, time zone and list of installed custom integrations to the downloaded file, so look it over before you share it. Logs and error messages never contain passwords, tokens, sign-in codes or links, media links, names or message texts.
 - **No extra packages.** The integration only uses libraries that come with Home Assistant, and only talks to Parro.
 
-Anyone who can open your Home Assistant can see this information: every [Home Assistant user](https://www.home-assistant.io/docs/authentication/) can read all Parro entities and their history, also when a dashboard is hidden from them. Keep Parro entities away from voice assistants, AI conversation agents and cloud services, so that school data stays in your home. Mobile notifications with message texts pass through the push services of Apple or Google. To report a security problem, see the [security policy](SECURITY.md).
+Anyone who can open your Home Assistant can see this information: every [Home Assistant user](https://www.home-assistant.io/docs/authentication/) can read all Parro entities and their history, also when a dashboard is hidden from them. Keep Parro entities away from voice assistants, AI conversation agents and cloud services, so that school data stays in your home. Mobile notifications with message texts pass through the push services of Apple or Google. The sign-in page of Home Assistant names the Parro card file, so anyone who can reach that page can see that Parro-HA is installed, and which version. To report a security problem, see the [security policy](SECURITY.md).
 
 ### What Home Assistant stores
 
 All of these files are part of your backups, so use encrypted backups.
 
 - **Parro entry** (`.storage/core.config_entries`): only the session tokens, the ID of the Home Assistant user they belong to and the number of your Parro account, besides your options.
-- **History** (the recorder database, 10 days by default, see `purge_keep_days`): the entity names, which contain your children's first names; each child's class and school year; the counters; the time of the newest announcement and whether it is read or pinned; the time and photo count of every announcement event; the start time of the next calendar item; when calendar items start and end (the on and off times of the calendars); and the time, conversation number and type of every chat message event.
-- **Replies**: Home Assistant itself stores every call of `parro_ha.send_message` in the history as a `call_service` event, with the message text, the conversation number and the entry ID. Refused replies are stored too, because Home Assistant records the call before the integration checks it.
+- **History** (the recorder database, 10 days by default, see `purge_keep_days`): the entity names, which contain your children's first names; each child's class and school year; the counters; the time of the newest announcement and whether it is read or pinned; the time of the newest announcement in each child's class; when each Parro photo last changed; the time and photo count of every announcement event; the start time of the next calendar item; when calendar items start and end (the on and off times of the calendars); and the time, conversation number and type of every chat message event.
+- **Action calls**: Home Assistant itself stores every action call in the history as a `call_service` event with its data: for `parro_ha.send_message` the message text, the conversation number and the entry ID, and for a notification the title and message, such as the group and title of an announcement in the [notification example](#notifications). Refused replies are stored too, because Home Assistant records the call before the integration checks it.
 - **Traces** (`.storage/trace.saved_traces`): the traces of automations and scripts keep the call as well, and the Parro state that started them with all its attributes, such as the title and author of an announcement or the sender and preview of a chat message.
 - **Last event** (`.storage/core.restore_state`): the last announcement and chat message event, with its attributes, so it survives a restart, until the next event replaces it. When the Parro entry is deleted, or the chat message event is removed because conversation details and replies are both off, Home Assistant still keeps that last event there for up to 7 days.
 - **Reply limits** (`.storage/parro_ha.<entry_id>.replies`): the times and conversation numbers of reply attempts for 24 hours, a fingerprint of the text only for the 6 hours in which the same message counts as a duplicate, and, after Parro refused a reply, when the one-hour pause ends. The text itself is never stored. Home Assistant removes outdated attempts and fingerprints as soon as it starts setting up the Parro entry, even if that setup fails, and from then on removes each one as soon as it expires, until Home Assistant stops. While Home Assistant is stopped, or after it started with the Parro entry disabled, they stay in the file until the entry is set up again or deleted.
@@ -247,7 +244,7 @@ Deleting the Parro entry removes the tokens, the user ID and the reply limits, a
 
 ### Keep Parro data out of the history
 
-To keep replies and Parro entities out of the history, add this to `configuration.yaml`, with the entity IDs of each of your children (in Dutch they end in `_groep`, `_foto` and `_agenda`):
+To keep action calls (replies and notifications) and Parro entities out of the history, add this to `configuration.yaml`, with the entity IDs of each of your children (in Dutch they end in `_groep`, `_foto` and `_agenda`):
 
 ```yaml
 recorder:
@@ -296,6 +293,7 @@ If `configuration.yaml` already has a `recorder:` section, add these lines to it
 1. Remove the Parro card and any other card or badge that names a Parro entity from your dashboards, and delete a dashboard made from the example in **Settings > Dashboards**; without the integration they show errors.
 2. Delete the Parro entry in **Settings > Devices & services**. This removes the stored session, its Home Assistant user ID and the reply limits, and asks ParnasSys to end the session.
 3. Remove the integration in the Marketplace or HACS, or delete `custom_components/parro_ha`.
+4. Restart Home Assistant.
 
 To remove one parent, delete only their Parro entry. Deleting just their Home Assistant user keeps their Parro session.
 
@@ -335,19 +333,19 @@ Replies are off until you choose conversations in the options. Only one-to-one a
 Before a reply is sent, Home Assistant checks, in this order: the conversation is allowed in the options; the text is plain text; the limits are not exceeded; the conversation still exists and still accepts replies. Then the reply is sent once.
 
 - The text is cleaned (invisible and control characters are removed, line endings are made the same) but never shortened. Text with a link or an e-mail address, with HTML or code (HTML tags and HTML entities, backticks, backslashes, square and curly brackets, so also markdown links and template code such as `{{ }}`), or that is only `unknown`, `unavailable`, `none` or `null` is refused, so a broken automation cannot send nonsense to a teacher and no reply can carry code into Parro.
-- The limits count attempts, not only successful replies: one per conversation per minute, 5 per hour and 20 per day, and no identical message to the same conversation within 6 hours. They survive restarts and reloads. A reply that certainly did not reach Parro does not count as a duplicate, so you can send it again.
+- The limits count attempts, not only successful replies: one per conversation per minute, 5 per hour and 20 per day, and no identical message to the same conversation within 6 hours. They survive restarts and reloads. A reply that certainly did not reach Parro does not count as a duplicate, so you can send it again. A reply that Parro did not confirm does count, so word it differently if it did not arrive.
 - A reply is never repeated automatically. If Parro does not confirm it, you are told to check the conversation in Parro first. If Parro refuses a reply, sending pauses for an hour.
 - Who can send, and how to keep reply automations safe, is described under [Sending chat replies](#sending-chat-replies).
 
 ### Events
 
-`event.parro_announcement` (`event.parro_bericht` in Dutch) fires once for every announcement that appears after Home Assistant started. Announcements that already existed, and older ones that move into view when a newer one is deleted, do not fire. `event.parro_chat_message` (`event.parro_chatbericht`) fires when someone else writes in a conversation; your own messages and messages from before Home Assistant started do not fire.
+`event.parro_announcement` (`event.parro_bericht` in Dutch) fires once for every announcement that appears after the Parro entry was loaded, oldest first. The entry loads when Home Assistant starts, when you save the Parro options and after signing in again; what arrived since the last check before that does not fire. Announcements that already existed, and older ones that move into view when a newer one is deleted, do not fire either. `event.parro_chat_message` (`event.parro_chatbericht`) fires when someone else writes in a conversation, oldest message first; your own messages, conversations without any message and messages from before the entry was loaded do not fire.
 
 Both event entities stay available when Parro cannot be reached, so an outage never looks like a new event. A restart or reload does briefly make them unavailable, so skip changes from or to `unavailable` as the condition in the [notification example](#notifications) does; otherwise the automation runs again for the last event. One update can bring several events, so keep `mode: queued` and give the trigger no `from`, `to`, `not_from` or `not_to`: older Home Assistant versions give events of the same millisecond the same state.
 
 ### Photos
 
-Parro media links work without signing in, so they are treated as secrets. Home Assistant downloads the images itself, only over HTTPS from Parro's own media hosts, without following redirects, up to 15 MB per image, and serves them through its image proxy. After a failed download the same image is tried again after five minutes.
+Parro media links work without signing in, so they are treated as secrets. Home Assistant downloads the images itself, only over HTTPS from Parro's own media hosts, without following redirects, up to 15 MB per image, and serves them through its image proxy. After a failed download the same image is tried again after five minutes, and only the first failure is logged as a warning.
 
 ### Devices
 

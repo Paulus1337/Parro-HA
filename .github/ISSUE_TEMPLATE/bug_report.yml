@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Privacy first.** Issues are public. Never paste passwords, tokens, sign-in links, names of children, parents or teachers, message texts or photos. Diagnostics downloaded from Home Assistant contain no personal data and are safe to attach.
+        **Privacy first.** Issues are public. Never paste passwords, tokens, sign-in links, names of children, parents or teachers, message texts or photos. The Parro part of the diagnostics holds no personal data. Home Assistant adds its own details, such as your time zone and the list of installed custom integrations, so look the file over before you attach it.
 
         Security or privacy problems? Report them privately instead: see the [security policy](https://github.com/Paulus1337/Parro-HA/security/policy).
   - type: textarea
@@ -19,7 +19,7 @@ body:
     id: version
     attributes:
       label: Integration version
-      placeholder: "0.1.0"
+      placeholder: "0.1.2"
     validations:
       required: true
   - type: input

@@ -10,7 +10,7 @@
       "cannot_connect": "Could not reach Parro. Try again later.",
       "choice_expired": "Choosing the account did not work, because the sign-in page had expired. Sign in again.",
       "invalid_auth": "The e-mail address, username or password is incorrect. ParnasSys locks your account after a few wrong passwords, so check them carefully before you try again.",
-      "invalid_auth_attempts": "The e-mail address, username or password is incorrect. You have {attempts} attempts left before ParnasSys locks your account.",
+      "invalid_auth_attempts": "The e-mail address, username or password is incorrect. Attempts left before ParnasSys locks your account: {attempts}.",
       "login_changed": "The Parro sign-in page did not respond as expected. Your password was not tried again. Try again later. If it keeps happening, report it on the Parro-HA issue tracker.",
       "missing_credentials": "Fill in your e-mail address (or username) and your password.",
       "not_a_parent": "This account is not a parent (guardian) account. Only parent accounts are supported.",
@@ -132,7 +132,7 @@
       "message": "This conversation cannot get a reply. Only active one-to-one and family conversations with replies turned on can."
     },
     "duplicate_message": {
-      "message": "The same message was already sent to this conversation in the last 6 hours."
+      "message": "The same message was already sent, or perhaps sent, to this conversation in the last 6 hours."
     },
     "entry_not_loaded": {
       "message": "This Parro account is not loaded. Check that it is set up and working."
@@ -144,7 +144,7 @@
       "message": "Messages with links or e-mail addresses are not sent, for safety."
     },
     "message_markup": {
-      "message": "Only plain text is sent, without HTML, code, markdown links or template code. Leave out backticks, backslashes, square brackets, curly brackets and HTML tags."
+      "message": "Only plain text is sent, without HTML, code, markdown links or template code. Leave out backticks, backslashes, square brackets, curly brackets, HTML tags and HTML codes, and put a space after an ampersand (&) or a less-than sign."
     },
     "message_template": {
       "message": "The message looks like an unknown value from a template, so it was not sent."
@@ -168,7 +168,7 @@
       "message": "Parro refused the reply. Sending is paused for an hour."
     },
     "send_uncertain": {
-      "message": "Could not confirm that Parro received the reply. Check the conversation in Parro before you try again."
+      "message": "Could not confirm that Parro received the reply. Check the conversation in Parro. If the reply is not there, word it differently, because the same text is not sent again within 6 hours."
     },
     "sending_paused": {
       "message": "Parro refused an earlier reply, so sending is paused for an hour."

@@ -29,6 +29,7 @@ const TEXTS = {
     unreadConversations: "Unread conversations",
     nextEvent: "Next event",
     recentPhotos: "Recent photos",
+    announcement: "Announcement",
     new: "new",
     photo: "photo",
     photos: "photos",
@@ -41,6 +42,7 @@ const TEXTS = {
     message: "Message",
     send: "Send",
     sent: "Sent.",
+    lost: "The connection to Home Assistant was lost. Check the conversation in Parro before you send it again.",
     none: "Ask an administrator to add Parro and sign in with your own Parro account.",
   },
   nl: {
@@ -48,6 +50,7 @@ const TEXTS = {
     unreadConversations: "Ongelezen gesprekken",
     nextEvent: "Volgende activiteit",
     recentPhotos: "Recente foto's",
+    announcement: "Bericht",
     new: "nieuw",
     photo: "foto",
     photos: "foto's",
@@ -60,6 +63,7 @@ const TEXTS = {
     message: "Bericht",
     send: "Versturen",
     sent: "Verstuurd.",
+    lost: "De verbinding met Home Assistant is verbroken. Kijk in het gesprek in Parro voordat je opnieuw verstuurt.",
     none: "Vraag een beheerder om Parro toe te voegen en meld je aan met je eigen Parro-account.",
   },
 };
@@ -71,18 +75,24 @@ const el = (tag, props, ...children) => {
 };
 const valid = (id) => (typeof id === "string" && /^[a-z0-9_]+\.[a-z0-9_]+$/.test(id) ? id : null);
 const quote = JSON.stringify;
-const ESCAPES = [["<", "&lt;"], [">", "&gt;"], ["[", "&#91;"], ["_", "&#95;"], ["*", "&#42;"], ["`", "&#96;"], ["\\\\", "&#92;"], [":", "&#58;"], ["@", "&#64;"], ["www.", "www&#46;"]];
+const ESCAPES = [
+  ["&", "&amp;"], ["<", "&lt;"], [">", "&gt;"], ["[", "&#91;"], ["_", "&#95;"], ["*", "&#42;"], ["`", "&#96;"],
+  ["~", "&#126;"], ["\\\\", "&#92;"], [":", "&#58;"], ["@", "&#64;"], ["www.", "www&#46;"], ["\\r\\n", "<br>"],
+  ["\\r", "<br>"], ["\\n", "<br>"],
+];
 const esc = (value) => `(${value} or '')` + ESCAPES.map(([from, to]) => ` | replace('${from}', '${to}')`).join("");
 const announcements = (id, t) =>
-  `{%- for item in state_attr('${id}', 'announcements') or [] %}\n\n**{{ ${esc("item.title")} }}**` +
-  `{{ ${quote(` (${t.new})`)} if not item.read }}\n_{{ ${esc("item.group")} }}, {{ ${esc("item.author")} }}` +
-  `{% if item.published %}, {{ as_timestamp(item.published) | timestamp_custom(${quote(t.date)}) }}{% endif %}` +
-  `{% if item.photos %}, {{ item.photos }} {{ ${quote(t.photo)} if item.photos == 1 else ${quote(t.photos)} }}` +
-  `{% endif %}_\n{{ ${esc("(item.text or '') | truncate(280)")} }}\n{%- else %}\n${t.noAnnouncements}\n{%- endfor %}`;
+  `{%- for item in state_attr('${id}', 'announcements') or [] %}{% set meta = [item.group, item.author, ` +
+  `as_timestamp(item.published) | timestamp_custom(${quote(t.date)}) if item.published else '', ` +
+  `item.photos ~ ' ' ~ (${quote(t.photo)} if item.photos == 1 else ${quote(t.photos)}) if item.photos else ''] ` +
+  `| select | join(', ') %}\n\n**{{ ${esc(`item.title or ${quote(t.announcement)}`)} }}**` +
+  `{{ ${quote(` (${t.new})`)} if not item.read }}{% if meta %}<br>_{{ ${esc("meta")} }}_{% endif %}` +
+  `{% if item.text %}<br>{{ ${esc("item.text | truncate(280)")} }}{% endif %}\n` +
+  `{%- else %}\n${t.noAnnouncements}\n{%- endfor %}`;
 const conversations = (id, t) =>
   `{%- for item in state_attr('${id}', 'conversations') or [] %}\n\n` +
   `**{{ ${esc(`item.name or ${quote(t.conversation)}`)} }}**{{ " (" ~ item.unread ~ ${quote(` ${t.unread})`)} ` +
-  `if item.unread }}\n{% if item.last_sender %}_{{ ${esc("item.last_sender")} }}:_ {% endif %}` +
+  `if item.unread }}<br>{% if item.last_sender %}_{{ ${esc("item.last_sender")} }}:_ {% endif %}` +
   `{{ ${esc("item.preview")} }}\n{%- else %}\n${t.noConversations}\n{%- endfor %}`;
 
 class ParroCard extends HTMLElement {
@@ -112,6 +122,7 @@ class ParroCard extends HTMLElement {
   }
 
   set hass(hass) {
+    if (this._hass && hass.entities !== this._hass.entities) this._user = null;
     this._hass = hass;
     const user = hass.user?.id || "";
     if (user !== this._user && !this._busy && this.isConnected) this._load(user);
@@ -122,6 +133,7 @@ class ParroCard extends HTMLElement {
   async _load(user) {
     this._busy = true;
     this._user = user;
+    clearTimeout(this._retry);
     let answer;
     try {
       answer = await this._hass.callWS({ type: "parro_ha/account" });
@@ -135,7 +147,7 @@ class ParroCard extends HTMLElement {
     }
     this._busy = false;
     if (!answer) {
-      setTimeout(() => {
+      this._retry = setTimeout(() => {
         this._user = null;
         if (this.isConnected) this.hass = this._hass;
       }, 30000);
@@ -161,13 +173,13 @@ class ParroCard extends HTMLElement {
     };
     const ids = Object.fromEntries(Object.entries(answer?.entities || {}).map(([key, id]) => [key, valid(id)]));
     const tile = (entity, name) => entity && { type: "tile", entity, name };
-    const picture = (entity, ratio) => ({
-      type: "picture-entity",
-      entity,
-      show_name: false,
-      show_state: false,
-      aspect_ratio: ratio,
+    const shown = (entity, config) => ({
+      type: "conditional",
+      conditions: [{ condition: "state", entity, state_not: ["unknown", "unavailable"] }],
+      card: config,
     });
+    const picture = (entity, ratio) =>
+      shown(entity, { type: "picture-entity", entity, show_name: false, show_state: false, aspect_ratio: ratio });
     this._chat = null;
     if (answer) {
       const latest = ids.latest_announcement;
@@ -184,7 +196,7 @@ class ParroCard extends HTMLElement {
       const photos = (answer.recent_photos || []).map(valid).filter(Boolean);
       if (photos.length) {
         block(
-          { type: "heading", heading: t.recentPhotos, icon: "mdi:image-multiple" },
+          shown(photos[0], { type: "heading", heading: t.recentPhotos, icon: "mdi:image-multiple" }),
           { type: "grid", columns: 2, square: false, cards: photos.map((photo) => picture(photo, "4:3")) },
         );
       }
@@ -201,9 +213,10 @@ class ParroCard extends HTMLElement {
           id: chats,
           t,
           select,
+          text,
           items: null,
           key: "",
-          list: card({ type: "markdown", content: conversations(chats, t) }),
+          list: el("div", { hidden: true }, card({ type: "markdown", content: conversations(chats, t) })),
           form: el("ha-card", { header: t.reply, hidden: true }, form),
         };
         button.onclick = async () => {
@@ -217,7 +230,7 @@ class ParroCard extends HTMLElement {
             status.textContent = t.sent;
           } catch (err) {
             status.className = "error";
-            status.textContent = err?.message || String(err);
+            status.textContent = await this._explain(err, t);
           }
           button.disabled = false;
         };
@@ -234,6 +247,18 @@ class ParroCard extends HTMLElement {
     this.shadowRoot.replaceChildren(el("style", { textContent: STYLE }), content);
   }
 
+  async _explain(err, t) {
+    const { translation_domain: domain, translation_key: key, translation_placeholders: values } = err || {};
+    let text = "";
+    try {
+      const localize = domain && key && (await this._hass.loadBackendTranslation("exceptions", domain));
+      text = (localize && localize(`component.${domain}.exceptions.${key}.message`, values || {})) || "";
+    } catch {
+      text = "";
+    }
+    return text || (typeof err?.message === "string" && err.message) || t.lost;
+  }
+
   _sync() {
     const chat = this._chat;
     const items = chat && this._hass.states[chat.id]?.attributes.conversations;
@@ -245,10 +270,12 @@ class ParroCard extends HTMLElement {
     if (key === chat.key) return;
     chat.key = key;
     chat.form.hidden = !rooms.length;
+    if (!rooms.length) return;
     const value = chat.select.value;
     const option = (item) => el("option", { value: String(item.id), textContent: item.name || chat.t.conversation });
     chat.select.replaceChildren(...rooms.map(option));
     if (rooms.some((item) => String(item.id) === value)) chat.select.value = value;
+    else chat.text.value = "";
   }
 }
 

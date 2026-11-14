@@ -50,7 +50,8 @@ class ParroAnnouncementEvent(_ParroEvent):
         self._attr_event_types = [EVENT_NEW_ANNOUNCEMENT]
         announcements = coordinator.data.announcements
         self._seen = [item.announcement_id for item in reversed(announcements)]
-        self._watermark = max((item.published for item in announcements if item.published), default=dt_util.utcnow())
+        now = dt_util.utcnow()
+        self._watermark = min(max((item.published for item in announcements if item.published), default=now), now)
 
     def _is_new(self, item: ParroAnnouncement, seen: set[int]) -> bool:
         recent = item.published is not None and item.published >= self._watermark
@@ -58,11 +59,11 @@ class ParroAnnouncementEvent(_ParroEvent):
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        seen = set(self._seen)
+        seen, now = set(self._seen), dt_util.utcnow()
         new = [item for item in reversed(self.coordinator.data.announcements) if self._is_new(item, seen)]
         for item in new:
             self._seen.append(item.announcement_id)
-            self._watermark = max(self._watermark, item.published or self._watermark)
+            self._watermark = max(self._watermark, min(item.published or now, now))
             attributes = {
                 "title": item.title,
                 "group": item.group_name,
@@ -114,9 +115,13 @@ class ParroChatMessageEvent(_ParroEvent):
     def _handle_coordinator_update(self) -> None:
         data = self.coordinator.data
         new = [room for room in data.chat_rooms or [] if self._is_new(room)]
-        self._last_message_at |= {room.room_id: room.last_message_at for room in data.chat_rooms or []}
-        fired = [room for room in new if room.last_sender_id not in data.account.own_ids]
-        for room in fired:
+        self._last_message_at |= {room.room_id: room.last_message_at for room in new}
+        fired = [
+            room
+            for room in new
+            if room.last_sender_id not in data.account.own_ids and (room.last_message or room.last_sender_id)
+        ]
+        for room in sorted(fired, key=lambda room: room.last_message_at or self._started):
             self._trigger_event(EVENT_NEW_CHAT_MESSAGE, self._attributes(room))
             self.async_write_ha_state()
         if not fired:

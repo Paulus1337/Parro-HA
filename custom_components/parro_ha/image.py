@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from typing import Any
 
@@ -48,19 +49,19 @@ async def async_setup_entry(
     )
 
 
-async def _async_download(hass: HomeAssistant, url: str) -> Image | None:
+async def _async_download(hass: HomeAssistant, url: str, level: int = logging.WARNING) -> Image | None:
     try:
         async with async_get_clientsession(hass).get(url, timeout=IMAGE_TIMEOUT, allow_redirects=False) as response:
             content_type = CONTENT_TYPES.get(response.content_type)
             content = await read_body(response, MAX_IMAGE_BYTES) if response.status == 200 and content_type else b""
             if not content or content_type is None:
-                LOGGER.warning(
-                    "Could not load a Parro image (HTTP %s, %s)", response.status, content_type or "no image"
+                LOGGER.log(
+                    level, "Could not load a Parro image (HTTP %s, %s)", response.status, content_type or "no image"
                 )
                 return None
             return Image(content_type, content)
     except (*REQUEST_ERRORS, ParroError) as err:
-        LOGGER.warning("Could not load a Parro image (%s)", type(err).__name__)
+        LOGGER.log(level, "Could not load a Parro image (%s)", type(err).__name__)
         return None
 
 
@@ -84,7 +85,9 @@ class _ImageSource:
             paused = self._failed_at is not None and time.monotonic() - self._failed_at < RETRY_AFTER
             if self._image is not None or paused or not is_media_url(url):
                 return self._image
-            image = await _async_download(self._hass, url)
+            image = await _async_download(
+                self._hass, url, logging.WARNING if self._failed_at is None else logging.DEBUG
+            )
             if url == self.url:
                 self._image, self._failed_at = image, (None if image else time.monotonic())
             return image

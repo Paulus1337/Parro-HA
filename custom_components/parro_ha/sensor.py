@@ -184,7 +184,7 @@ class ParroClassSensor(ParroChildEntity, SensorEntity):
     @property
     def native_value(self) -> str | None:
         group = self.coordinator.data.class_for_child(self.child_id)
-        return truncate(group.name, MAX_LENGTH_STATE_STATE) if group else None
+        return truncate(group.name, MAX_LENGTH_STATE_STATE) if group and group.name else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

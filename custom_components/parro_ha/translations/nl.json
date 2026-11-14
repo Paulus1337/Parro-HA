@@ -10,11 +10,11 @@
       "cannot_connect": "Parro is niet bereikbaar. Probeer het later opnieuw.",
       "choice_expired": "Het kiezen van het account is niet gelukt, omdat de aanmeldpagina was verlopen. Meld je opnieuw aan.",
       "invalid_auth": "Het e-mailadres, de gebruikersnaam of het wachtwoord klopt niet. ParnasSys blokkeert je account na een paar verkeerde wachtwoorden, dus controleer ze goed voordat je het opnieuw probeert.",
-      "invalid_auth_attempts": "Het e-mailadres, de gebruikersnaam of het wachtwoord klopt niet. Je hebt nog {attempts} pogingen voordat ParnasSys je account blokkeert.",
+      "invalid_auth_attempts": "Het e-mailadres, de gebruikersnaam of het wachtwoord klopt niet. Resterende pogingen voordat ParnasSys je account blokkeert: {attempts}.",
       "login_changed": "De aanmeldpagina van Parro reageerde anders dan verwacht. Je wachtwoord is niet opnieuw geprobeerd. Probeer het later opnieuw. Blijft dit gebeuren, meld het dan in de issuetracker van Parro-HA.",
       "missing_credentials": "Vul je e-mailadres (of gebruikersnaam) en je wachtwoord in.",
       "not_a_parent": "Dit is geen ouder- of verzorgeraccount. Alleen ouderaccounts worden ondersteund.",
-      "sign_in_uncertain": "Parro heeft niet bevestigd of je wachtwoord is geaccepteerd. Controleer of je kunt aanmelden op talk.parro.com of in de Parro-app voordat je het hier opnieuw probeert.",
+      "sign_in_uncertain": "Parro heeft niet bevestigd of je wachtwoord is geaccepteerd. Controleer of je je kunt aanmelden op talk.parro.com of in de Parro-app voordat je het hier opnieuw probeert.",
       "two_factor": "Dit account gebruikt tweestapsverificatie, en dat ondersteunt Parro-HA niet. Gebruik een ouderaccount zonder tweestapsverificatie.",
       "unknown": "Onverwachte fout. Bekijk de logboeken voor details.",
       "wrong_account": "Je bent aangemeld met een ander Parro-account. Meld je aan met het account dat oorspronkelijk is ingesteld."
@@ -37,7 +37,7 @@
         },
         "data_description": {
           "password": "Wordt één keer naar de officiële aanmeldpagina van Parro gestuurd en nooit opgeslagen.",
-          "username": "Het e-mailadres of de gebruikersnaam waarmee je bij Parro aanmeldt."
+          "username": "Het e-mailadres of de gebruikersnaam waarmee je je bij Parro aanmeldt."
         },
         "description": "Je Parro-sessie is beëindigd. Meld je opnieuw aan met het e-mailadres (of de gebruikersnaam) en het wachtwoord van je Parro-account.\n\nParnasSys blokkeert een account na een paar verkeerde wachtwoorden. Home Assistant probeert een wachtwoord nooit zelf opnieuw.",
         "title": "Opnieuw aanmelden bij Parro"
@@ -51,7 +51,7 @@
         "data_description": {
           "password": "Wordt één keer naar de officiële aanmeldpagina van Parro gestuurd en nooit opgeslagen.",
           "user": "De Home Assistant-gebruiker van wie dit Parro-account is. De Parro-kaart toont dit account aan die gebruiker, en antwoorden van die gebruiker worden met dit account verstuurd.",
-          "username": "Het e-mailadres of de gebruikersnaam waarmee je bij Parro aanmeldt."
+          "username": "Het e-mailadres of de gebruikersnaam waarmee je je bij Parro aanmeldt."
         },
         "description": "Parro-HA is een onofficieel opensource-hobbyproject. Het is niet gemaakt, goedgekeurd of ondersteund door Parro of ParnasSys.\n\nMeld je aan met het e-mailadres (of de gebruikersnaam) en het wachtwoord van je Parro-account. Die worden één keer verstuurd, alleen naar de officiële aanmeldpagina van ParnasSys, en nooit opgeslagen. Home Assistant bewaart een sessie die zichzelf vernieuwt.\n\nParnasSys blokkeert een account na een paar verkeerde wachtwoorden. Home Assistant probeert een wachtwoord nooit zelf opnieuw.",
         "title": "Aanmelden bij Parro"
@@ -132,7 +132,7 @@
       "message": "Op dit gesprek kan niet worden geantwoord. Dat kan alleen bij actieve een-op-een- en gezinsgesprekken waarin antwoorden aanstaat."
     },
     "duplicate_message": {
-      "message": "Hetzelfde bericht is de afgelopen 6 uur al naar dit gesprek gestuurd."
+      "message": "Hetzelfde bericht is de afgelopen 6 uur al naar dit gesprek gestuurd, of misschien gestuurd."
     },
     "entry_not_loaded": {
       "message": "Dit Parro-account is niet geladen. Controleer of het is ingesteld en werkt."
@@ -144,7 +144,7 @@
       "message": "Berichten met links of e-mailadressen worden voor de veiligheid niet verstuurd."
     },
     "message_markup": {
-      "message": "Alleen platte tekst wordt verstuurd, zonder HTML, code, markdown-links of templatecode. Laat backticks, backslashes, vierkante haken, accolades en HTML-tags weg."
+      "message": "Alleen platte tekst wordt verstuurd, zonder HTML, code, markdown-links of templatecode. Laat backticks, backslashes, vierkante haken, accolades, HTML-tags en HTML-codes weg, en zet een spatie na een ampersand (&) of een kleiner-dan-teken."
     },
     "message_template": {
       "message": "Het bericht lijkt op een onbekende waarde uit een template en is daarom niet verstuurd."
@@ -168,7 +168,7 @@
       "message": "Parro heeft het antwoord geweigerd. Versturen is een uur gepauzeerd."
     },
     "send_uncertain": {
-      "message": "Niet bevestigd dat Parro het antwoord heeft ontvangen. Kijk eerst in het gesprek in Parro voordat je het opnieuw probeert."
+      "message": "Niet bevestigd dat Parro het antwoord heeft ontvangen. Kijk in het gesprek in Parro. Staat het antwoord er niet, formuleer het dan anders, want dezelfde tekst wordt binnen 6 uur niet opnieuw verstuurd."
     },
     "sending_paused": {
       "message": "Parro heeft een eerder antwoord geweigerd, daarom is versturen een uur gepauzeerd."

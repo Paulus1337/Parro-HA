@@ -122,7 +122,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> boo
 
 async def async_unload_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    await entry.runtime_data.client.async_settle()
+    await entry.runtime_data.client.async_close()
     return unloaded
 
 

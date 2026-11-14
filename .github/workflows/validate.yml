@@ -36,6 +36,7 @@ jobs:
           persist-credentials: false
       - name: Run hassfest and fail on brand image warnings
         run: |
+          set -o pipefail
           docker run --rm -v "$GITHUB_WORKSPACE:/github/workspace" \
             ghcr.io/home-assistant/hassfest:latest | tee hassfest.log
           if grep -q '\[WARNING\] \[BRAND_IMAGES\]' hassfest.log; then

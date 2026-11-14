@@ -10,7 +10,7 @@ views:
         type: markdown
         text_only: true
         content: |-
-          {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+          {%- macro safe(s) -%}{{ (s or '') | string | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('~', '&#126;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') | replace('\r\n', '<br>') | replace('\r', '<br>') | replace('\n', '<br>') }}{%- endmacro -%}
           {%- set hour = now().hour -%}
           # {{ 'Good morning' if hour < 12 else 'Good afternoon' if hour < 18 else 'Good evening' }}
           {%- set raw = states('sensor.parro_next_event') %}
@@ -76,7 +76,7 @@ views:
               rows: 1
           - type: markdown
             content: |-
-              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('~', '&#126;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') | replace('\r\n', '<br>') | replace('\r', '<br>') | replace('\n', '<br>') }}{%- endmacro -%}
               {%- set msg = state_attr('calendar.alex_calendar', 'message') %}
               {%- set st = state_attr('calendar.alex_calendar', 'start_time') %}
               {%- set start = as_datetime(st, none) if st else none %}
@@ -103,7 +103,7 @@ views:
             heading_style: title
           - type: markdown
             content: |-
-              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('~', '&#126;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') | replace('\r\n', '<br>') | replace('\r', '<br>') | replace('\n', '<br>') }}{%- endmacro -%}
               {%- set events = state_attr('sensor.parro_next_event', 'upcoming') -%}
               {%- set ns = namespace(day='') -%}
               {%- for e in (events or [])[:8] -%}
@@ -130,7 +130,7 @@ views:
             heading_style: title
           - type: markdown
             content: |-
-              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('~', '&#126;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') | replace('\r\n', '<br>') | replace('\r', '<br>') | replace('\n', '<br>') }}{%- endmacro -%}
               {%- set items = state_attr('sensor.parro_latest_announcement', 'announcements') -%}
               {%- for item in items or [] -%}
               {%- set ts = as_timestamp(item.published, 0) if item.published else 0 -%}
@@ -142,13 +142,13 @@ views:
               ### {{ safe(item.title) }}
               <small>{{ meta }}{{ (', ' ~ flags) if flags else '' }}</small>
 
-              {{ safe(item.text) }}
+              <span>{{ safe(item.text) }}</span>
 
               <hr>
               {%- else %}
               <details><summary><b>{{ safe(item.title) }}</b><br><small>{{ meta }}{{ (', ' ~ flags) if flags else '' }}</small></summary>
 
-              {{ safe(item.text) }}
+              <span>{{ safe(item.text) }}</span>
 
               </details>
               {%- endif %}
@@ -282,7 +282,7 @@ views:
               columns: 12
           - type: markdown
             content: |-
-              {%- macro safe(s) -%}{{ (s or '') | string | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') }}{%- endmacro -%}
+              {%- macro safe(s) -%}{{ (s or '') | string | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('[', '&#91;') | replace('_', '&#95;') | replace('*', '&#42;') | replace('`', '&#96;') | replace('~', '&#126;') | replace('\\', '&#92;') | replace(':', '&#58;') | replace('@', '&#64;') | replace('www.', 'www&#46;') | replace('\r\n', '<br>') | replace('\r', '<br>') | replace('\n', '<br>') }}{%- endmacro -%}
               {%- set rooms = state_attr('sensor.parro_unread_conversations', 'conversations') -%}
               {%- set labels = {'bot': 'Parro', 'family': 'Family conversation', 'single': 'Conversation', 'group': 'Group conversation', 'calendar': 'Calendar'} -%}
               {%- for r in rooms or [] -%}

@@ -67,6 +67,8 @@ def _visible(char: str) -> bool:
 def clean_message(text: Any) -> str:
     if not isinstance(text, str):
         raise _refusal("message_empty")
+    if len(text) > 10 * MAX_MESSAGE_LENGTH:
+        raise _refusal("message_too_long")
     text = unicodedata.normalize("NFC", text.replace("\r\n", "\n")).translate(_LINE_BREAKS)
     text = "".join(
         char
