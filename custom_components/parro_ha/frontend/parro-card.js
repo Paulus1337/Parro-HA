@@ -279,11 +279,15 @@ class ParroCard extends HTMLElement {
   }
 }
 
-if (!customElements.get("parro-card")) {
+const register = () => {
+  if (customElements.get("parro-card")) return;
   customElements.define("parro-card", ParroCard);
   (window.customCards = window.customCards || []).push({
     type: "parro-card",
     name: "Parro",
     description: "Announcements, conversations, calendars and photos of the Parro account of whoever views it.",
   });
-}
+};
+
+if (customElements.get("home-assistant")) register();
+else customElements.whenDefined("home-assistant").then(register);
