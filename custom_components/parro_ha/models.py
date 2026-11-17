@@ -188,6 +188,7 @@ class ParroAnnouncement:
     read: bool
     pinned: bool
     attachments: tuple[ParroAttachment, ...]
+    group_names: tuple[str, ...] = ()
 
     @classmethod
     def from_api(cls, data: Mapping[str, Any], group: ParroGroup) -> ParroAnnouncement | None:
@@ -204,6 +205,7 @@ class ParroAnnouncement:
             read=data.get("read") is True,
             pinned=data.get("pinned") is True,
             attachments=tuple(map(ParroAttachment.from_api, _mappings(data.get("attachments")))),
+            group_names=(group.name,) if group.name else (),
         )
 
     @property

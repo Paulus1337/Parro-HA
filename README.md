@@ -29,8 +29,8 @@
 - **Announcements**: the latest announcement plus a list of recent ones, with title, group, author and text, and an event for every new announcement.
 - **Recent photos** from announcements as image entities (opt-in).
 - **Chats**: unread counters, conversation details (opt-in), an event when a conversation gets a new message, and plain-text replies to conversations you allow (off by default).
-- **Parro in the sidebar**: a page for every user with their own Parro data, with nothing to set up.
-- **Parro card**: one dashboard card that fills itself with your Parro data, with a switch for every part.
+- **Parro card**: one dashboard card that fills itself with your Parro data, with a title, the number of announcements, a group and a switch for every part.
+- **Pop-ups**: tap the unread counters or the latest announcement anywhere in Home Assistant to read the announcements and photos, or the conversations with a reply form.
 - **Several parents, one dashboard**: each parent signs in with their own Parro account, and the Parro card shows everyone their own account.
 - **Privacy first**: nothing is marked as read, and passwords, tokens, names and message texts never appear in logs or diagnostics. See [Privacy and security](#privacy-and-security).
 - **English and Dutch**.
@@ -44,7 +44,7 @@
 
 1. Add this repository (`https://github.com/Paulus1337/Parro-HA`) to the Marketplace or HACS and install **Parro**. Restart Home Assistant if it asks you to.
 2. Go to **Settings > Devices & services > Add integration > Parro** and [sign in](#setup).
-3. Open **Parro** in the sidebar, or add the Parro card to a dashboard: in the dashboard editor, select **Add card** and pick **Parro** (see [Parro in the sidebar](#parro-in-the-sidebar) and [Parro card](#parro-card)).
+3. Add the Parro card to a dashboard: in the dashboard editor, select **Add card** and pick **Parro** (see [Parro card](#parro-card)).
 4. Optional: get a notification for every new announcement, as described under [Notifications](#notifications).
 
 ## Installation
@@ -93,15 +93,24 @@ To change the options, go to **Settings > Devices & services > Parro** and selec
 
 Changing an option reloads the integration.
 
-## Parro in the sidebar
+## Pop-ups
 
-Parro adds **Parro** to the sidebar of every user. It shows the same as the [Parro card](#parro-card), on a page of its own and with nothing to set up: the Parro account of the user who opens it, or a short note for a user without a Parro account of their own. On a phone, the menu button at the top opens the sidebar. Every user can hide it in their profile, under **Change the order and hide items from the sidebar**. If a dashboard already uses the address `/parro-ha`, that dashboard stays and Parro adds no item to the sidebar.
+Tap **Unread announcements** or **Latest announcement** anywhere in Home Assistant, on a dashboard, a badge or the device page, and Home Assistant's own pop-up shows the recent announcements and photos of that Parro account. Tap **Unread conversations** for the conversations of that account, with the reply form when it is your own account. The pop-up is made of the same parts as the [Parro card](#parro-card), and Home Assistant keeps its own history in it.
+
+The pop-up shows what Home Assistant already has: it asks Parro nothing extra, never opens a conversation and marks nothing as read. Like every entity, it shows its account to every user who can open it (see [Privacy and security](#privacy-and-security)). The list of conversations needs **Show conversation details**.
 
 ## Parro card
 
 The integration makes the **Parro card** available on every dashboard. It fills itself with the Parro account of the user who looks at it: the unread counters, the recent announcements and conversations, the next calendar item and the school calendar, each child's photo and class, and the recent photos. It finds the entities itself, in every language and after renames, follows changes without a page reload, and leaves out what is turned off and photos that are not available. It adapts to phones, tablets and desktops.
 
-In the dashboard editor, select **Add card** and pick **Parro**. The card editor has a switch for every part, all on to start with: **Announcements**, **Children**, **Recent photos**, **Conversations**, **Reply form** and **Calendar**. Turn off what a dashboard does not need, such as the reply form on a wall tablet. In YAML it is `type: custom:parro-ha-card`, with `show_announcements`, `show_children`, `show_photos`, `show_conversations`, `show_reply` or `show_calendar` set to `false` to leave that part out. Before version 0.2.0 it was `custom:parro-card`, the same name as the card of another Parro integration; a dashboard that still uses that name shows an error until you change it.
+In the dashboard editor, select **Add card** and pick **Parro**. The card editor has:
+
+- **Title**: a title above the card.
+- **Number of announcements**: 1 to 20; empty shows all that Parro-HA keeps (**Announcements to keep** in the options).
+- **Group**: only the announcements sent to one group, also when they were sent to more groups. The list offers the groups of your own account, and you can type another.
+- A switch for every part, all on to start with: **Announcements**, **Children**, **Recent photos**, **Conversations**, **Reply form** and **Calendar**. Turn off what a dashboard does not need, such as the reply form on a wall tablet; then the card's **Unread conversations** counter does not open the [pop-up](#pop-ups) either.
+
+In YAML it is `type: custom:parro-ha-card`, with the optional `title`, `announcement_count` and `group`, and `show_announcements`, `show_children`, `show_photos`, `show_conversations`, `show_reply` or `show_calendar` set to `false` to leave that part out. Before version 0.2.0 it was `custom:parro-card`, the same name as the card of another Parro integration; a dashboard that still uses that name shows an error until you change it.
 
 If the card is missing right after installing or updating Parro-HA, reload the page or restart the Home Assistant app. The list of conversations and the reply form need **Show conversation details**. The list shows the 10 most recent conversations, and the form only offers those of them that Home Assistant may reply to; reply to the others with the [Send chat reply](#sending-chat-replies) action. If the conversation you picked leaves the list while you type, the form empties itself, so a reply never goes to another conversation. Errors are shown in your language. Recent photos only show when **Recent photos** is set in the Parro options.
 
@@ -155,7 +164,7 @@ Home Assistant gives every entity one value for everyone, so each Parro account 
 The stored Home Assistant user ID decides whose Parro account is used, not who can see the data: Home Assistant still lets every user read every entity (see [Privacy and security](#privacy-and-security)).
 
 1. An administrator opens **Settings > Devices & services > Add integration > Parro**, because only administrators can add integrations. There the parent enters the e-mail address (or username) and password of their own Parro account, picks their own Home Assistant user under **Home Assistant user** in the same form, and then selects **Submit**. Repeat this for the other parent, and rename the second Parro entry and its device as described in [More than one Parro account](#more-than-one-parro-account).
-2. Add the [Parro card](#parro-card) to a dashboard that both parents use. It shows everyone the Parro account of their own Home Assistant user. Without a dashboard, [Parro in the sidebar](#parro-in-the-sidebar) does the same.
+2. Add the [Parro card](#parro-card) to a dashboard that both parents use. It shows everyone the Parro account of their own Home Assistant user.
 3. An administrator makes a notification automation for each parent, as described under [Notifications](#notifications), with the event entities of that parent's Parro entry and the notify action of that parent's phone. For example, for the second parent, with the entry renamed to *Parro 2*:
 
 ```yaml
@@ -184,7 +193,7 @@ The integration creates a **Parro** device for your account and a device for eac
 | `sensor.parro_unread_announcements` | `sensor.parro_ongelezen_berichten` | Parro | Unread announcements. |
 | `sensor.parro_unread_conversations` | `sensor.parro_ongelezen_gesprekken` | Parro | Conversations with unread messages. With conversation details on, the 10 most recent conversations are listed in the `conversations` attribute, each with `id`, `type`, `name`, `members`, `unread`, `last_message_at`, `last_sender`, `preview` and `can_reply`. |
 | `sensor.parro_unread_calendar_items` | `sensor.parro_ongelezen_agenda_items` | Parro | Unread calendar items (disabled by default). |
-| `sensor.parro_latest_announcement` | `sensor.parro_laatste_bericht` | Parro | Time of the newest announcement. Attributes: `title`, `group`, `author`, `published`, `text`, `photos`, `attachments`, `read`, `pinned` and `announcements` (recent announcements with the same fields). |
+| `sensor.parro_latest_announcement` | `sensor.parro_laatste_bericht` | Parro | Time of the newest announcement. Attributes: `title`, `group`, `groups` (every group it was sent to), `author`, `published`, `text`, `photos`, `attachments`, `read`, `pinned` and `announcements` (recent announcements with the same fields). |
 | `sensor.parro_next_event` | `sensor.parro_volgende_activiteit` | Parro | Start of the current or next calendar item. Attributes: `title`, `start`, `end`, `all_day`, `groups` and `upcoming` (the next 10 items). |
 | `calendar.parro_school_calendar` | `calendar.parro_schoolagenda` | Parro | All calendar items. |
 | `event.parro_announcement` | `event.parro_bericht` | Parro | Fires `new_announcement` with `title`, `group`, `author`, `published` and `photos`. |
@@ -351,6 +360,10 @@ Both event entities stay available when Parro cannot be reached, so an outage ne
 ### Photos
 
 Parro media links work without signing in, so they are treated as secrets. Home Assistant downloads the images itself, only over HTTPS from Parro's own media hosts, without following redirects, up to 15 MB per image, and serves them through its image proxy. After a failed download the same image is tried again after five minutes, and only the first failure is logged as a warning.
+
+### Pop-ups
+
+The **Unread announcements**, **Latest announcement** and **Unread conversations** sensors carry Home Assistant's `custom_ui_more_info` attribute, which makes its pop-up show the element `parro-ha-more-info` from the card file. It is a capability attribute, so it stays while a sensor is unavailable, and it is not recorded in the history. The element finds the other entities of the same account in Home Assistant's entity registry, so renamed entities keep working.
 
 ### Devices
 

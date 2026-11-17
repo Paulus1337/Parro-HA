@@ -24,6 +24,7 @@ from .entity import ParroChildEntity, ParroEntity, async_add_child_entities, iso
 from .models import ParroAnnouncement, ParroChatRoom, ParroChild, ParroEvent
 
 PARALLEL_UPDATES = 0
+MORE_INFO = {"custom_ui_more_info": "parro-ha-more-info"}
 UNRECORDED_ATTRIBUTES = frozenset(
     {
         "all_day",
@@ -31,6 +32,7 @@ UNRECORDED_ATTRIBUTES = frozenset(
         "attachments",
         "author",
         "conversations",
+        *MORE_INFO,
         "end",
         "group",
         "groups",
@@ -53,6 +55,7 @@ def _announcement(item: ParroAnnouncement, text_limit: int) -> dict[str, Any]:
     return {
         "title": item.title,
         "group": item.group_name,
+        "groups": list(item.group_names),
         "author": item.author,
         "published": iso(item.published),
         "text": truncate(item.text, text_limit),
@@ -109,6 +112,7 @@ def _conversation_attributes(data: ParroData, options: ParroOptions) -> dict[str
 class ParroSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[ParroData], StateType | datetime]
     attributes_fn: Callable[[ParroData, ParroOptions], dict[str, Any]] | None = None
+    more_info: bool = False
 
 
 ACCOUNT_SENSORS = (
@@ -116,12 +120,14 @@ ACCOUNT_SENSORS = (
         key="unread_announcements",
         translation_key="unread_announcements",
         value_fn=lambda data: data.unread.announcements,
+        more_info=True,
     ),
     ParroSensorEntityDescription(
         key="unread_conversations",
         translation_key="unread_conversations",
         value_fn=lambda data: data.unread.chat_rooms,
         attributes_fn=_conversation_attributes,
+        more_info=True,
     ),
     ParroSensorEntityDescription(
         key="unread_calendar_items",
@@ -135,6 +141,7 @@ ACCOUNT_SENSORS = (
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda data: data.announcements[0].published if data.announcements else None,
         attributes_fn=_latest_announcement_attributes,
+        more_info=True,
     ),
     ParroSensorEntityDescription(
         key="next_event",
@@ -172,6 +179,11 @@ class ParroAccountSensor(ParroEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         attributes_fn = self.entity_description.attributes_fn
         return attributes_fn(self.coordinator.data, self.coordinator.options) if attributes_fn else None
+
+    @property
+    def capability_attributes(self) -> dict[str, Any] | None:
+        capabilities = super().capability_attributes
+        return {**(capabilities or {}), **MORE_INFO} if self.entity_description.more_info else capabilities
 
 
 class ParroClassSensor(ParroChildEntity, SensorEntity):

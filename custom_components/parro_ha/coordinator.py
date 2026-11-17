@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 import time
 from typing import Any
@@ -212,8 +212,12 @@ class ParroDataUpdateCoordinator(DataUpdateCoordinator[ParroData]):
             async with self._request_slots:
                 return await _optional(self.client.async_get_announcements(group, limit), [])
 
-        per_group = await asyncio.gather(*map(fetch, groups))
-        unique = {item.announcement_id: item for items in per_group for item in items}
+        unique: dict[int, ParroAnnouncement] = {}
+        for items in await asyncio.gather(*map(fetch, groups)):
+            for item in items:
+                seen = unique.get(item.announcement_id)
+                names = (*seen.group_names, *item.group_names) if seen else item.group_names
+                unique[item.announcement_id] = replace(item, group_names=tuple(dict.fromkeys(names)))
         return sorted(unique.values(), key=lambda item: item.published or _OLDEST, reverse=True)
 
     async def async_get_chat_rooms(self) -> list[ParroChatRoom]:

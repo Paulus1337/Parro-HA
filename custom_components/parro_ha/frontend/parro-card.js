@@ -22,20 +22,8 @@ button {
   color: var(--text-primary-color); font: inherit; cursor: pointer;
 }
 button:disabled { opacity: 0.5; cursor: default; }
+.title { padding: 0 4px 12px; font-size: 24px; line-height: 32px; color: var(--ha-card-header-color, inherit); }
 `;
-const PANEL_STYLE = `
-:host { display: block; height: 100%; background: var(--primary-background-color); }
-.bar {
-  display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: var(--header-height, 56px);
-  padding: 0 16px; font-size: 20px; background: var(--app-header-background-color);
-  color: var(--app-header-text-color, white); border-bottom: var(--app-header-border-bottom, none);
-}
-.menu { display: flex; margin-left: -8px; padding: 8px; border: 0; background: none; color: inherit; cursor: pointer; }
-.menu svg { width: 24px; height: 24px; fill: currentColor; }
-.content { box-sizing: border-box; height: calc(100% - var(--header-height, 56px)); padding: 8px; overflow-y: auto; }
-[hidden] { display: none !important; }
-`;
-const MENU = '<svg viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg>';
 const TEXTS = {
   en: {
     unreadAnnouncements: "Unread announcements",
@@ -57,13 +45,16 @@ const TEXTS = {
     sent: "Sent.",
     lost: "The connection to Home Assistant was lost. Check the conversation in Parro before you send it again.",
     none: "Ask an administrator to add Parro and sign in with your own Parro account.",
-    menu: "Menu",
     show_announcements: "Announcements",
     show_children: "Children",
     show_photos: "Recent photos",
     show_conversations: "Conversations",
     show_reply: "Reply form",
     show_calendar: "Calendar",
+    title: "Title",
+    announcement_count: "Number of announcements",
+    group: "Group",
+    details: "Turn on Show conversation details in the Parro options to see the conversations here.",
   },
   nl: {
     unreadAnnouncements: "Ongelezen berichten",
@@ -85,13 +76,16 @@ const TEXTS = {
     sent: "Verstuurd.",
     lost: "De verbinding met Home Assistant is verbroken. Kijk in het gesprek in Parro voordat je opnieuw verstuurt.",
     none: "Vraag een beheerder om Parro toe te voegen en meld je aan met je eigen Parro-account.",
-    menu: "Menu",
     show_announcements: "Berichten",
     show_children: "Kinderen",
     show_photos: "Recente foto's",
     show_conversations: "Gesprekken",
     show_reply: "Antwoordformulier",
     show_calendar: "Agenda",
+    title: "Titel",
+    announcement_count: "Aantal berichten",
+    group: "Groep",
+    details: "Zet Gespreksdetails tonen aan in de Parro-opties om de gesprekken hier te zien.",
   },
 };
 
@@ -118,8 +112,15 @@ const ESCAPES = [
   ["\\r", "<br>"], ["\\n", "<br>"],
 ];
 const esc = (value) => `(${value} or '')` + ESCAPES.map(([from, to]) => ` | replace('${from}', '${to}')`).join("");
-const announcements = (id, t) =>
-  `{%- for item in state_attr('${id}', 'announcements') or [] %}{% set meta = [item.group, item.author, ` +
+const literal = (value) => {
+  const hex = (c) => `\\U${c.codePointAt(0).toString(16).padStart(8, "0")}`;
+  return `"${[...value].map((c) => (/[A-Za-z0-9 ]/.test(c) ? c : hex(c))).join("")}"`;
+};
+const announcements = (id, t, { group, announcement_count: count } = {}) =>
+  `{%- for item in ((state_attr('${id}', 'announcements') or [])` +
+  `${group ? ` | selectattr('groups', 'defined') | selectattr('groups', 'contains', ${literal(group)})` : ""}` +
+  ` | list)${count ? `[:${count}]` : ""} %}` +
+  `{% set meta = [(item.get('groups') or [item.group]) | join(', '), item.author, ` +
   `as_timestamp(item.published) | timestamp_custom(${quote(t.date)}) if item.published else '', ` +
   `item.photos ~ ' ' ~ (${quote(t.photo)} if item.photos == 1 else ${quote(t.photos)}) if item.photos else ''] ` +
   `| select | join(', ') %}\n\n**{{ ${esc(`item.title or ${quote(t.announcement)}`)} }}**` +
@@ -143,17 +144,48 @@ class ParroCard extends HTMLElement {
 
   setConfig(config) {
     const options = { ...DEFAULTS, ...config };
-    if (PARTS.some((part) => typeof options[part] !== "boolean")) throw new Error(`${PARTS.join(", ")}: true or false`);
+    const count = options.announcement_count;
+    if (
+      PARTS.some((part) => typeof options[part] !== "boolean") ||
+      ["title", "group"].some((key) => options[key] !== undefined && typeof options[key] !== "string") ||
+      (count !== undefined && !(Number.isInteger(count) && count >= 1 && count <= 20))
+    ) {
+      throw new Error(`${PARTS.join(", ")}: true or false; title, group: text; announcement_count: 1 to 20`);
+    }
     if (JSON.stringify(options) === JSON.stringify(this._config)) return;
     this._config = options;
     this._user = null;
     if (this._hass) this.hass = this._hass;
   }
 
-  static getConfigForm() {
-    const t = texts(document.querySelector("home-assistant")?.hass);
+  set account(account) {
+    if (JSON.stringify(account) === JSON.stringify(this._account)) return;
+    this._account = account;
+    this._user = null;
+    if (this._hass) this.hass = this._hass;
+  }
+
+  static async getConfigForm() {
+    const hass = document.querySelector("home-assistant")?.hass;
+    const t = texts(hass);
+    let groups = [];
+    try {
+      const { entities, children } = (await hass.callWS({ type: "parro_ha/account" })) || {};
+      const items = hass.states[entities?.latest_announcement]?.attributes.announcements;
+      const classes = (children || []).map((child) => hass.states[child?.class]?.state);
+      groups = [...(Array.isArray(items) ? items.flatMap((item) => item?.groups || []) : []), ...classes];
+    } catch {
+      groups = [];
+    }
+    const real = (group) => typeof group === "string" && group && !["unknown", "unavailable"].includes(group);
+    const options = [...new Set(groups.filter(real))].sort();
     return {
-      schema: PARTS.map((name) => ({ name, default: true, selector: { boolean: {} } })),
+      schema: [
+        { name: "title", selector: { text: {} } },
+        { name: "announcement_count", selector: { number: { min: 1, max: 20, mode: "box" } } },
+        { name: "group", selector: { select: { options, custom_value: true, mode: "dropdown" } } },
+        ...PARTS.map((name) => ({ name, default: true, selector: { boolean: {} } })),
+      ],
       computeLabel: (schema) => t[schema.name],
     };
   }
@@ -190,6 +222,8 @@ class ParroCard extends HTMLElement {
     let answer;
     try {
       answer = await this._hass.callWS({ type: "parro_ha/account" });
+      const own = this._account;
+      if (own && answer?.entry_id !== own.entry_id) answer = own.entities ? { ...own, foreign: true } : null;
       if (answer || this._hass.config.state === "RUNNING") {
         const json = JSON.stringify([answer, this._config]);
         if (json !== this._json) await this._build(answer);
@@ -226,7 +260,10 @@ class ParroCard extends HTMLElement {
       if (nodes.length) grid.append(el("div", { className: "block" }, ...nodes));
     };
     const ids = Object.fromEntries(Object.entries(answer?.entities || {}).map(([key, id]) => [key, valid(id)]));
-    const tile = (entity, name) => entity && { type: "tile", entity, name };
+    const none = { action: "none" };
+    const closed = { tap_action: none, icon_tap_action: none, hold_action: none };
+    const tile = (entity, name, open = true) =>
+      entity && !this.popup && { type: "tile", entity, name, ...(open ? {} : closed) };
     const shown = (entity, config) => ({
       type: "conditional",
       conditions: [{ condition: "state", entity, state_not: ["unknown", "unavailable"] }],
@@ -240,7 +277,7 @@ class ParroCard extends HTMLElement {
         const latest = ids.latest_announcement;
         block(
           tile(ids.unread_announcements, t.unreadAnnouncements),
-          latest && { type: "markdown", content: announcements(latest, t) },
+          latest && { type: "markdown", content: announcements(latest, t, show) },
         );
       }
       for (const child of show.show_children ? answer.children || [] : []) {
@@ -274,6 +311,7 @@ class ParroCard extends HTMLElement {
           key: "",
           list: el("div", { hidden: true }, card({ type: "markdown", content: conversations(chats, t) })),
           form: el("ha-card", { header: t.reply, hidden: true }, form),
+          hint: this.popup && el("ha-card", { hidden: true }, el("div", { className: "text", textContent: t.details })),
         };
         button.onclick = async () => {
           button.disabled = true;
@@ -290,7 +328,8 @@ class ParroCard extends HTMLElement {
           }
           button.disabled = false;
         };
-        block(tile(chats, t.unreadConversations), this._chat.list, show.show_reply && this._chat.form);
+        const reply = show.show_reply && !answer.foreign && this._chat.form;
+        block(tile(chats, t.unreadConversations, show.show_reply), this._chat.list, this._chat.hint, reply);
       }
       if (show.show_calendar) {
         const school = ids.school_calendar;
@@ -302,7 +341,8 @@ class ParroCard extends HTMLElement {
     }
     this._cards = cards;
     const content = answer ? grid : el("ha-card", {}, el("div", { className: "text", textContent: t.none }));
-    this.shadowRoot.replaceChildren(el("style", { textContent: STYLE }), content);
+    const title = show.title && el("div", { className: "title", textContent: show.title });
+    this.shadowRoot.replaceChildren(...[el("style", { textContent: STYLE }), title, content].filter(Boolean));
   }
 
   async _explain(err, t) {
@@ -319,7 +359,10 @@ class ParroCard extends HTMLElement {
 
   _sync() {
     const chat = this._chat;
-    const items = chat && this._hass.states[chat.id]?.attributes.conversations;
+    const entity = chat && this._hass.states[chat.id];
+    const items = entity?.attributes.conversations;
+    const quiet = Array.isArray(items) || ["unavailable", "unknown", undefined].includes(entity?.state);
+    if (chat?.hint) chat.hint.hidden = quiet;
     if (!chat || items === chat.items) return;
     chat.items = items;
     chat.list.hidden = !Array.isArray(items);
@@ -337,31 +380,46 @@ class ParroCard extends HTMLElement {
   }
 }
 
-class ParroPanel extends HTMLElement {
+class ParroMoreInfo extends HTMLElement {
   constructor() {
     super();
     this._card = document.createElement("parro-ha-card");
-    this._menu = el("button", { className: "menu", hidden: true, innerHTML: MENU });
-    this._menu.onclick = () => this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }));
-    this.attachShadow({ mode: "open" }).append(
-      el("style", { textContent: PANEL_STYLE }),
-      el("div", { className: "bar" }, this._menu, "Parro"),
-      el("div", { className: "content" }, this._card),
-    );
+    this._card.popup = true;
+    this.attachShadow({ mode: "open" }).append(this._card);
+  }
+
+  set stateObj(stateObj) {
+    this._state = stateObj;
+    if (this._hass) this.hass = this._hass;
   }
 
   set hass(hass) {
-    this._menu.title = texts(hass).menu;
+    this._hass = hass;
+    const id = this._state?.entity_id;
+    const entities = Object.values(hass.entities || {});
+    const item = hass.entities?.[id];
+    const attributes = this._state?.attributes || {};
+    const kind = item?.translation_key || ("conversations" in attributes ? "unread_conversations" : "");
+    const mine = (entry) => item && entry.device_id === item.device_id;
+    const find = (key) => entities.find((entry) => mine(entry) && entry.translation_key === key)?.entity_id;
+    const chats = kind === "unread_conversations";
+    const key = chats ? kind : "latest_announcement";
+    const parts = chats ? ["show_conversations", "show_reply"] : ["show_announcements", "show_photos"];
+    this._card.setConfig(Object.fromEntries(PARTS.map((part) => [part, parts.includes(part)])));
+    this._card.account = {
+      entry_id: hass.devices?.[item?.device_id]?.config_entries?.[0] || null,
+      entities: { [key]: item ? find(key) || null : id },
+      recent_photos: entities
+        .filter((entry) => mine(entry) && entry.translation_key === "recent_photo")
+        .map((entry) => entry.entity_id)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    };
     this._card.hass = hass;
-  }
-
-  set narrow(narrow) {
-    this._menu.hidden = !narrow;
   }
 }
 
 const register = () => {
-  if (!customElements.get("parro-ha-panel")) customElements.define("parro-ha-panel", ParroPanel);
+  if (!customElements.get("parro-ha-more-info")) customElements.define("parro-ha-more-info", ParroMoreInfo);
   if (customElements.get("parro-ha-card")) return;
   customElements.define("parro-ha-card", ParroCard);
   (window.customCards = window.customCards || []).push({
