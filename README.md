@@ -29,7 +29,8 @@
 - **Announcements**: the latest announcement plus a list of recent ones, with title, group, author and text, and an event for every new announcement.
 - **Recent photos** from announcements as image entities (opt-in).
 - **Chats**: unread counters, conversation details (opt-in), an event when a conversation gets a new message, and plain-text replies to conversations you allow (off by default).
-- **Parro card**: one dashboard card that fills itself with your Parro data.
+- **Parro in the sidebar**: a page for every user with their own Parro data, with nothing to set up.
+- **Parro card**: one dashboard card that fills itself with your Parro data, with a switch for every part.
 - **Several parents, one dashboard**: each parent signs in with their own Parro account, and the Parro card shows everyone their own account.
 - **Privacy first**: nothing is marked as read, and passwords, tokens, names and message texts never appear in logs or diagnostics. See [Privacy and security](#privacy-and-security).
 - **English and Dutch**.
@@ -43,7 +44,7 @@
 
 1. Add this repository (`https://github.com/Paulus1337/Parro-HA`) to the Marketplace or HACS and install **Parro**. Restart Home Assistant if it asks you to.
 2. Go to **Settings > Devices & services > Add integration > Parro** and [sign in](#setup).
-3. Add the Parro card to a dashboard: in the dashboard editor, select **Add card** and pick **Parro** (see [Parro card](#parro-card)).
+3. Open **Parro** in the sidebar, or add the Parro card to a dashboard: in the dashboard editor, select **Add card** and pick **Parro** (see [Parro in the sidebar](#parro-in-the-sidebar) and [Parro card](#parro-card)).
 4. Optional: get a notification for every new announcement, as described under [Notifications](#notifications).
 
 ## Installation
@@ -92,11 +93,15 @@ To change the options, go to **Settings > Devices & services > Parro** and selec
 
 Changing an option reloads the integration.
 
+## Parro in the sidebar
+
+Parro adds **Parro** to the sidebar of every user. It shows the same as the [Parro card](#parro-card), on a page of its own and with nothing to set up: the Parro account of the user who opens it, or a short note for a user without a Parro account of their own. On a phone, the menu button at the top opens the sidebar. Every user can hide it in their profile, under **Change the order and hide items from the sidebar**. If a dashboard already uses the address `/parro-ha`, that dashboard stays and Parro adds no item to the sidebar.
+
 ## Parro card
 
 The integration makes the **Parro card** available on every dashboard. It fills itself with the Parro account of the user who looks at it: the unread counters, the recent announcements and conversations, the next calendar item and the school calendar, each child's photo and class, and the recent photos. It finds the entities itself, in every language and after renames, follows changes without a page reload, and leaves out what is turned off and photos that are not available. It adapts to phones, tablets and desktops.
 
-In the dashboard editor, select **Add card** and pick **Parro**. In YAML it is `type: custom:parro-ha-card`, without options. Before version 0.2.0 it was `custom:parro-card`, the same name as the card of another Parro integration; a dashboard that still uses that name shows an error until you change it.
+In the dashboard editor, select **Add card** and pick **Parro**. The card editor has a switch for every part, all on to start with: **Announcements**, **Children**, **Recent photos**, **Conversations**, **Reply form** and **Calendar**. Turn off what a dashboard does not need, such as the reply form on a wall tablet. In YAML it is `type: custom:parro-ha-card`, with `show_announcements`, `show_children`, `show_photos`, `show_conversations`, `show_reply` or `show_calendar` set to `false` to leave that part out. Before version 0.2.0 it was `custom:parro-card`, the same name as the card of another Parro integration; a dashboard that still uses that name shows an error until you change it.
 
 If the card is missing right after installing or updating Parro-HA, reload the page or restart the Home Assistant app. The list of conversations and the reply form need **Show conversation details**. The list shows the 10 most recent conversations, and the form only offers those of them that Home Assistant may reply to; reply to the others with the [Send chat reply](#sending-chat-replies) action. If the conversation you picked leaves the list while you type, the form empties itself, so a reply never goes to another conversation. Errors are shown in your language. Recent photos only show when **Recent photos** is set in the Parro options.
 
@@ -150,7 +155,7 @@ Home Assistant gives every entity one value for everyone, so each Parro account 
 The stored Home Assistant user ID decides whose Parro account is used, not who can see the data: Home Assistant still lets every user read every entity (see [Privacy and security](#privacy-and-security)).
 
 1. An administrator opens **Settings > Devices & services > Add integration > Parro**, because only administrators can add integrations. There the parent enters the e-mail address (or username) and password of their own Parro account, picks their own Home Assistant user under **Home Assistant user** in the same form, and then selects **Submit**. Repeat this for the other parent, and rename the second Parro entry and its device as described in [More than one Parro account](#more-than-one-parro-account).
-2. Add the [Parro card](#parro-card) to a dashboard that both parents use. It shows everyone the Parro account of their own Home Assistant user.
+2. Add the [Parro card](#parro-card) to a dashboard that both parents use. It shows everyone the Parro account of their own Home Assistant user. Without a dashboard, [Parro in the sidebar](#parro-in-the-sidebar) does the same.
 3. An administrator makes a notification automation for each parent, as described under [Notifications](#notifications), with the event entities of that parent's Parro entry and the notify action of that parent's phone. For example, for the second parent, with the entry renamed to *Parro 2*:
 
 ```yaml

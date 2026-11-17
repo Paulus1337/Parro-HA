@@ -23,6 +23,19 @@ button {
 }
 button:disabled { opacity: 0.5; cursor: default; }
 `;
+const PANEL_STYLE = `
+:host { display: block; height: 100%; background: var(--primary-background-color); }
+.bar {
+  display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: var(--header-height, 56px);
+  padding: 0 16px; font-size: 20px; background: var(--app-header-background-color);
+  color: var(--app-header-text-color, white); border-bottom: var(--app-header-border-bottom, none);
+}
+.menu { display: flex; margin-left: -8px; padding: 8px; border: 0; background: none; color: inherit; cursor: pointer; }
+.menu svg { width: 24px; height: 24px; fill: currentColor; }
+.content { box-sizing: border-box; height: calc(100% - var(--header-height, 56px)); padding: 8px; overflow-y: auto; }
+[hidden] { display: none !important; }
+`;
+const MENU = '<svg viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg>';
 const TEXTS = {
   en: {
     unreadAnnouncements: "Unread announcements",
@@ -44,6 +57,13 @@ const TEXTS = {
     sent: "Sent.",
     lost: "The connection to Home Assistant was lost. Check the conversation in Parro before you send it again.",
     none: "Ask an administrator to add Parro and sign in with your own Parro account.",
+    menu: "Menu",
+    show_announcements: "Announcements",
+    show_children: "Children",
+    show_photos: "Recent photos",
+    show_conversations: "Conversations",
+    show_reply: "Reply form",
+    show_calendar: "Calendar",
   },
   nl: {
     unreadAnnouncements: "Ongelezen berichten",
@@ -65,6 +85,13 @@ const TEXTS = {
     sent: "Verstuurd.",
     lost: "De verbinding met Home Assistant is verbroken. Kijk in het gesprek in Parro voordat je opnieuw verstuurt.",
     none: "Vraag een beheerder om Parro toe te voegen en meld je aan met je eigen Parro-account.",
+    menu: "Menu",
+    show_announcements: "Berichten",
+    show_children: "Kinderen",
+    show_photos: "Recente foto's",
+    show_conversations: "Gesprekken",
+    show_reply: "Antwoordformulier",
+    show_calendar: "Agenda",
   },
 };
 
@@ -75,6 +102,16 @@ const el = (tag, props, ...children) => {
 };
 const valid = (id) => (typeof id === "string" && /^[a-z0-9_]+\.[a-z0-9_]+$/.test(id) ? id : null);
 const quote = JSON.stringify;
+const texts = (hass) => TEXTS[/^nl/.test(hass?.locale?.language || hass?.language || "") ? "nl" : "en"];
+const PARTS = ["announcements", "children", "photos", "conversations", "reply", "calendar"].map((p) => `show_${p}`);
+const DEFAULTS = Object.fromEntries(PARTS.map((part) => [part, true]));
+const cardHelpers = async () => {
+  if (!window.loadCardHelpers) {
+    const resolver = document.createElement("partial-panel-resolver");
+    await resolver._getRoutes([{ component_name: "lovelace", url_path: "parro-ha" }]).routes["parro-ha"].load();
+  }
+  return window.loadCardHelpers();
+};
 const ESCAPES = [
   ["&", "&amp;"], ["<", "&lt;"], [">", "&gt;"], ["[", "&#91;"], ["_", "&#95;"], ["*", "&#42;"], ["`", "&#96;"],
   ["~", "&#126;"], ["\\\\", "&#92;"], [":", "&#58;"], ["@", "&#64;"], ["www.", "www&#46;"], ["\\r\\n", "<br>"],
@@ -100,10 +137,26 @@ class ParroCard extends HTMLElement {
     super();
     this._cards = [];
     this._user = null;
+    this._config = DEFAULTS;
     this.attachShadow({ mode: "open" });
   }
 
-  setConfig() {}
+  setConfig(config) {
+    const options = { ...DEFAULTS, ...config };
+    if (PARTS.some((part) => typeof options[part] !== "boolean")) throw new Error(`${PARTS.join(", ")}: true or false`);
+    if (JSON.stringify(options) === JSON.stringify(this._config)) return;
+    this._config = options;
+    this._user = null;
+    if (this._hass) this.hass = this._hass;
+  }
+
+  static getConfigForm() {
+    const t = texts(document.querySelector("home-assistant")?.hass);
+    return {
+      schema: PARTS.map((name) => ({ name, default: true, selector: { boolean: {} } })),
+      computeLabel: (schema) => t[schema.name],
+    };
+  }
 
   getCardSize() {
     return 12;
@@ -138,7 +191,7 @@ class ParroCard extends HTMLElement {
     try {
       answer = await this._hass.callWS({ type: "parro_ha/account" });
       if (answer || this._hass.config.state === "RUNNING") {
-        const json = JSON.stringify(answer);
+        const json = JSON.stringify([answer, this._config]);
         if (json !== this._json) await this._build(answer);
         this._json = json;
       }
@@ -156,9 +209,10 @@ class ParroCard extends HTMLElement {
   }
 
   async _build(answer) {
-    const helpers = await window.loadCardHelpers();
+    const helpers = await cardHelpers();
     const hass = this._hass;
-    const t = TEXTS[/^nl/.test(hass.locale?.language || hass.language) ? "nl" : "en"];
+    const t = texts(hass);
+    const show = this._config;
     const cards = [];
     const grid = el("div", { className: "grid" });
     const card = (config) => {
@@ -182,25 +236,27 @@ class ParroCard extends HTMLElement {
       shown(entity, { type: "picture-entity", entity, show_name: false, show_state: false, aspect_ratio: ratio });
     this._chat = null;
     if (answer) {
-      const latest = ids.latest_announcement;
-      block(
-        tile(ids.unread_announcements, t.unreadAnnouncements),
-        latest && { type: "markdown", content: announcements(latest, t) },
-      );
-      for (const child of answer.children || []) {
+      if (show.show_announcements) {
+        const latest = ids.latest_announcement;
+        block(
+          tile(ids.unread_announcements, t.unreadAnnouncements),
+          latest && { type: "markdown", content: announcements(latest, t) },
+        );
+      }
+      for (const child of show.show_children ? answer.children || [] : []) {
         const photo = valid(child?.photo);
         const group = valid(child?.class);
         const top = [photo && picture(photo, "1:1"), group && { type: "tile", entity: group }].filter(Boolean);
         block(top.length && { type: "grid", columns: 2, square: false, cards: top });
       }
-      const photos = (answer.recent_photos || []).map(valid).filter(Boolean);
+      const photos = show.show_photos ? (answer.recent_photos || []).map(valid).filter(Boolean) : [];
       if (photos.length) {
         block(
           shown(photos[0], { type: "heading", heading: t.recentPhotos, icon: "mdi:image-multiple" }),
           { type: "grid", columns: 2, square: false, cards: photos.map((photo) => picture(photo, "4:3")) },
         );
       }
-      const chats = ids.unread_conversations;
+      const chats = show.show_conversations && ids.unread_conversations;
       if (chats) {
         const select = el("select");
         const text = el("textarea", { maxLength: 1000, rows: 3 });
@@ -234,13 +290,15 @@ class ParroCard extends HTMLElement {
           }
           button.disabled = false;
         };
-        block(tile(chats, t.unreadConversations), this._chat.list, this._chat.form);
+        block(tile(chats, t.unreadConversations), this._chat.list, show.show_reply && this._chat.form);
       }
-      const school = ids.school_calendar;
-      block(
-        tile(ids.next_event, t.nextEvent),
-        school && { type: "calendar", entities: [school], initial_view: "dayGridMonth" },
-      );
+      if (show.show_calendar) {
+        const school = ids.school_calendar;
+        block(
+          tile(ids.next_event, t.nextEvent),
+          school && { type: "calendar", entities: [school], initial_view: "dayGridMonth" },
+        );
+      }
     }
     this._cards = cards;
     const content = answer ? grid : el("ha-card", {}, el("div", { className: "text", textContent: t.none }));
@@ -279,7 +337,31 @@ class ParroCard extends HTMLElement {
   }
 }
 
+class ParroPanel extends HTMLElement {
+  constructor() {
+    super();
+    this._card = document.createElement("parro-ha-card");
+    this._menu = el("button", { className: "menu", hidden: true, innerHTML: MENU });
+    this._menu.onclick = () => this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }));
+    this.attachShadow({ mode: "open" }).append(
+      el("style", { textContent: PANEL_STYLE }),
+      el("div", { className: "bar" }, this._menu, "Parro"),
+      el("div", { className: "content" }, this._card),
+    );
+  }
+
+  set hass(hass) {
+    this._menu.title = texts(hass).menu;
+    this._card.hass = hass;
+  }
+
+  set narrow(narrow) {
+    this._menu.hidden = !narrow;
+  }
+}
+
 const register = () => {
+  if (!customElements.get("parro-ha-panel")) customElements.define("parro-ha-panel", ParroPanel);
   if (customElements.get("parro-ha-card")) return;
   customElements.define("parro-ha-card", ParroCard);
   (window.customCards = window.customCards || []).push({

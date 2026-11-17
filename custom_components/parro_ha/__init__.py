@@ -4,7 +4,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
-from homeassistant.components import websocket_api
+from homeassistant.components import panel_custom, websocket_api
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
@@ -104,7 +104,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.services.async_register(DOMAIN, SERVICE_SEND_MESSAGE, async_send_message, schema=SEND_MESSAGE_SCHEMA)
     websocket_api.async_register_command(hass, _websocket_account)
     await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False)])
-    add_extra_js_url(hass, f"{CARD_URL}?v={(await async_get_integration(hass, DOMAIN)).version}")
+    url = f"{CARD_URL}?v={(await async_get_integration(hass, DOMAIN)).version}"
+    add_extra_js_url(hass, url)
+    with suppress(ValueError):
+        await panel_custom.async_register_panel(
+            hass, "parro-ha", "parro-ha-panel", sidebar_title="Parro", sidebar_icon="mdi:school-outline", module_url=url
+        )
     return True
 
 
