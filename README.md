@@ -96,7 +96,7 @@ Changing an option reloads the integration.
 
 The integration makes the **Parro card** available on every dashboard. It fills itself with the Parro account of the user who looks at it: the unread counters, the recent announcements and conversations, the next calendar item and the school calendar, each child's photo and class, and the recent photos. It finds the entities itself, in every language and after renames, follows changes without a page reload, and leaves out what is turned off and photos that are not available. It adapts to phones, tablets and desktops.
 
-In the dashboard editor, select **Add card** and pick **Parro**. In YAML it is `type: custom:parro-card`, without options.
+In the dashboard editor, select **Add card** and pick **Parro**. In YAML it is `type: custom:parro-ha-card`, without options. Before version 0.2.0 it was `custom:parro-card`, the same name as the card of another Parro integration; a dashboard that still uses that name shows an error until you change it.
 
 If the card is missing right after installing or updating Parro-HA, reload the page or restart the Home Assistant app. The list of conversations and the reply form need **Show conversation details**. The list shows the 10 most recent conversations, and the form only offers those of them that Home Assistant may reply to; reply to the others with the [Send chat reply](#sending-chat-replies) action. If the conversation you picked leaves the list while you type, the form empties itself, so a reply never goes to another conversation. Errors are shown in your language. Recent photos only show when **Recent photos** is set in the Parro options.
 

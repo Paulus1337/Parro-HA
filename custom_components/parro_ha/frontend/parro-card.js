@@ -280,10 +280,10 @@ class ParroCard extends HTMLElement {
 }
 
 const register = () => {
-  if (customElements.get("parro-card")) return;
-  customElements.define("parro-card", ParroCard);
+  if (customElements.get("parro-ha-card")) return;
+  customElements.define("parro-ha-card", ParroCard);
   (window.customCards = window.customCards || []).push({
-    type: "parro-card",
+    type: "parro-ha-card",
     name: "Parro",
     description: "Announcements, conversations, calendars and photos of the Parro account of whoever views it.",
   });
