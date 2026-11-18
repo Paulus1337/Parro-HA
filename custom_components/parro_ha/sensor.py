@@ -7,21 +7,17 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
 from homeassistant.const import MAX_LENGTH_STATE_STATE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CHAT_PREVIEW_LIMIT,
-    CONVERSATION_ATTRIBUTE_LIMIT,
-    SUMMARY_TEXT_LIMIT,
-    TEXT_ATTRIBUTE_LIMIT,
-    UPCOMING_EVENT_ATTRIBUTE_LIMIT,
-)
+from .const import CONVERSATION_ATTRIBUTE_LIMIT, SUMMARY_TEXT_LIMIT, TEXT_LIMIT, UPCOMING_EVENT_ATTRIBUTE_LIMIT
+from .content import announcement, conversations
 from .coordinator import ParroConfigEntry, ParroData, ParroDataUpdateCoordinator, ParroOptions, as_datetime
 from .entity import ParroChildEntity, ParroEntity, async_add_child_entities, iso, truncate
-from .models import ParroAnnouncement, ParroChatRoom, ParroChild, ParroEvent
+from .models import ParroAnnouncement, ParroChild, ParroEvent
 
 PARALLEL_UPDATES = 0
 MORE_INFO = {"custom_ui_more_info": "parro-ha-more-info"}
@@ -51,21 +47,6 @@ def _upcoming(data: ParroData) -> list[ParroEvent]:
     return [event for event in data.events if as_datetime(event.end) > now]
 
 
-def _announcement(item: ParroAnnouncement, text_limit: int) -> dict[str, Any]:
-    return {
-        "title": item.title,
-        "group": item.group_name,
-        "groups": list(item.group_names),
-        "author": item.author,
-        "published": iso(item.published),
-        "text": truncate(item.text, text_limit),
-        "photos": len(item.images),
-        "attachments": len(item.attachments),
-        "read": item.read,
-        "pinned": item.pinned,
-    }
-
-
 def _event(event: ParroEvent) -> dict[str, Any]:
     return {
         "title": event.title,
@@ -76,23 +57,15 @@ def _event(event: ParroEvent) -> dict[str, Any]:
     }
 
 
-def _conversation(room: ParroChatRoom, options: ParroOptions) -> dict[str, Any]:
-    return {
-        "id": room.room_id,
-        "type": room.kind,
-        "name": room.name or None,
-        "members": len(room.member_names),
-        "unread": room.unread_count,
-        "last_message_at": iso(room.last_message_at),
-        "last_sender": room.shown_sender,
-        "preview": truncate(room.last_message, CHAT_PREVIEW_LIMIT),
-        "can_reply": room.can_reply and room.room_id in options.reply_conversations,
-    }
+def _announcement(item: ParroAnnouncement, limit: int) -> dict[str, Any]:
+    return {**announcement(item, limit), "group": item.group_name}
 
 
-def _latest_announcement_attributes(data: ParroData, options: ParroOptions) -> dict[str, Any]:
+def _latest_announcement_attributes(data: ParroData, options: ParroOptions) -> dict[str, Any] | None:
+    if not options.announcement_details:
+        return None
     items = data.announcements[: options.announcement_count]
-    latest = _announcement(items[0], TEXT_ATTRIBUTE_LIMIT) if items else {}
+    latest = _announcement(items[0], TEXT_LIMIT) if items else {}
     return {**latest, "announcements": [_announcement(item, SUMMARY_TEXT_LIMIT) for item in items]}
 
 
@@ -101,18 +74,17 @@ def _next_event_attributes(data: ParroData, options: ParroOptions) -> dict[str, 
     return {**(upcoming[0] if upcoming else {}), "upcoming": upcoming}
 
 
-def _conversation_attributes(data: ParroData, options: ParroOptions) -> dict[str, Any]:
-    if not options.chat_details or data.chat_rooms is None:
-        return {}
-    rooms = data.chat_rooms[:CONVERSATION_ATTRIBUTE_LIMIT]
-    return {"conversations": [_conversation(room, options) for room in rooms]}
+def _conversation_attributes(data: ParroData, options: ParroOptions) -> dict[str, Any] | None:
+    if not options.chat_details:
+        return None
+    return {"conversations": conversations(data, options, CONVERSATION_ATTRIBUTE_LIMIT)}
 
 
 @dataclass(frozen=True, kw_only=True)
 class ParroSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[ParroData], StateType | datetime]
-    attributes_fn: Callable[[ParroData, ParroOptions], dict[str, Any]] | None = None
-    more_info: bool = False
+    attributes_fn: Callable[[ParroData, ParroOptions], dict[str, Any] | None] | None = None
+    more_info: bool = True
 
 
 ACCOUNT_SENSORS = (
@@ -120,20 +92,19 @@ ACCOUNT_SENSORS = (
         key="unread_announcements",
         translation_key="unread_announcements",
         value_fn=lambda data: data.unread.announcements,
-        more_info=True,
     ),
     ParroSensorEntityDescription(
         key="unread_conversations",
         translation_key="unread_conversations",
         value_fn=lambda data: data.unread.chat_rooms,
         attributes_fn=_conversation_attributes,
-        more_info=True,
     ),
     ParroSensorEntityDescription(
         key="unread_calendar_items",
         translation_key="unread_calendar_items",
         entity_registry_enabled_default=False,
         value_fn=lambda data: data.unread.calendar_items,
+        more_info=False,
     ),
     ParroSensorEntityDescription(
         key="latest_announcement",
@@ -141,15 +112,14 @@ ACCOUNT_SENSORS = (
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda data: data.announcements[0].published if data.announcements else None,
         attributes_fn=_latest_announcement_attributes,
-        more_info=True,
     ),
-    ParroSensorEntityDescription(
-        key="next_event",
-        translation_key="next_event",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: as_datetime(events[0].start) if (events := _upcoming(data)) else None,
-        attributes_fn=_next_event_attributes,
-    ),
+)
+NEXT_EVENT = ParroSensorEntityDescription(
+    key="next_event",
+    translation_key="next_event",
+    device_class=SensorDeviceClass.TIMESTAMP,
+    value_fn=lambda data: as_datetime(events[0].start) if (events := _upcoming(data)) else None,
+    attributes_fn=_next_event_attributes,
 )
 
 
@@ -157,10 +127,9 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ParroConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     coordinator = entry.runtime_data
-    async_add_entities(ParroAccountSensor(coordinator, description) for description in ACCOUNT_SENSORS)
-    async_add_child_entities(
-        entry, async_add_entities, lambda coordinator, child: [ParroClassSensor(coordinator, child)]
-    )
+    sensors = [ParroAccountSensor(coordinator, description) for description in ACCOUNT_SENSORS]
+    async_add_entities([*sensors, ParroNextEventSensor(coordinator, NEXT_EVENT)])
+    async_add_child_entities(entry, async_add_entities, ParroClassSensor)
 
 
 class ParroAccountSensor(ParroEntity, SensorEntity):
@@ -186,6 +155,38 @@ class ParroAccountSensor(ParroEntity, SensorEntity):
         return {**(capabilities or {}), **MORE_INFO} if self.entity_description.more_info else capabilities
 
 
+class ParroNextEventSensor(ParroAccountSensor):
+    _unsub_boundary: CALLBACK_TYPE | None = None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(self._async_cancel_boundary)
+        self._async_arm_boundary()
+
+    @callback
+    def _async_cancel_boundary(self) -> None:
+        if self._unsub_boundary is not None:
+            self._unsub_boundary()
+            self._unsub_boundary = None
+
+    @callback
+    def _async_arm_boundary(self) -> None:
+        self._async_cancel_boundary()
+        if events := _upcoming(self.coordinator.data)[:UPCOMING_EVENT_ATTRIBUTE_LIMIT]:
+            end = min(as_datetime(event.end) for event in events)
+            self._unsub_boundary = async_track_point_in_time(self.hass, self._async_boundary, end)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._async_arm_boundary()
+        super()._handle_coordinator_update()
+
+    @callback
+    def _async_boundary(self, now: datetime) -> None:
+        self._unsub_boundary = None
+        self._handle_coordinator_update()
+
+
 class ParroClassSensor(ParroChildEntity, SensorEntity):
     _attr_translation_key = "class"
     _unrecorded_attributes = UNRECORDED_ATTRIBUTES
@@ -202,9 +203,11 @@ class ParroClassSensor(ParroChildEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data
         group = data.class_for_child(self.child_id)
-        return {
+        attributes = {
             "school_year": group.school_year if group else None,
             "unread_announcements": sum(item.unread_count for item in data.groups_for_child(self.child_id)),
-            "last_announcement": group.last_announcement_title if group else None,
             "last_announcement_at": iso(group.last_announcement_at) if group else None,
         }
+        if self.coordinator.options.announcement_details:
+            attributes["last_announcement"] = group.last_announcement_title if group else None
+        return attributes

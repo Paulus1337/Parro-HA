@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from datetime import datetime
 
 from homeassistant.core import callback
@@ -57,9 +57,11 @@ class ParroChildEntity(ParroEntity):
 def async_add_child_entities(
     entry: ParroConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
-    factory: Callable[[ParroDataUpdateCoordinator, ParroChild], Iterable[Entity]],
+    factory: Callable[[ParroDataUpdateCoordinator, ParroChild], Entity],
 ) -> None:
     coordinator = entry.runtime_data
+    if not coordinator.options.children:
+        return
     known: set[int] = set()
 
     @callback
@@ -69,7 +71,7 @@ def async_add_child_entities(
         children = [child for child_id, child in coordinator.data.children.items() if child_id not in known]
         known.update(child.child_id for child in children)
         if children:
-            async_add_entities(entity for child in children for entity in factory(coordinator, child))
+            async_add_entities(factory(coordinator, child) for child in children)
 
     async_add_new_children()
     entry.async_on_unload(coordinator.async_add_listener(async_add_new_children))

@@ -54,6 +54,12 @@
     }
   },
   "services": {
+    "get_announcements": {
+      "service": "mdi:bullhorn-variant"
+    },
+    "get_conversations": {
+      "service": "mdi:forum"
+    },
     "send_message": {
       "service": "mdi:message-reply-text"
     }

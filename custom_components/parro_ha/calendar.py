@@ -18,9 +18,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ParroConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     async_add_entities([ParroSchoolCalendar(entry.runtime_data)])
-    async_add_child_entities(
-        entry, async_add_entities, lambda coordinator, child: [ParroChildCalendar(coordinator, child)]
-    )
+    async_add_child_entities(entry, async_add_entities, ParroChildCalendar)
 
 
 def _calendar_event(event: ParroEvent) -> CalendarEvent:

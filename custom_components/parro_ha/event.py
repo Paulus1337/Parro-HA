@@ -28,30 +28,47 @@ async def async_setup_entry(
     entities: list[EventEntity] = [ParroAnnouncementEvent(coordinator)]
     if coordinator.options.needs_chat_rooms:
         entities.append(ParroChatMessageEvent(coordinator))
-    else:
-        registry = er.async_get(hass)
-        if entity_id := registry.async_get_entity_id("event", DOMAIN, f"{entry_key(entry)}_chat_message"):
-            registry.async_remove(entity_id)
+    elif entity_id := er.async_get(hass).async_get_entity_id("event", DOMAIN, f"{entry_key(entry)}_chat_message"):
+        er.async_get(hass).async_remove(entity_id)
     async_add_entities(entities)
 
 
 class _ParroEvent(ParroEntity, EventEntity):
+    _ids: frozenset[str]
+    _details: bool
+
     @property
     def available(self) -> bool:
         return True
 
+    async def async_get_last_event_data(self) -> EventExtraStoredData | None:
+        data = await super().async_get_last_event_data()
+        if data is None or not data.last_event_attributes or self._details:
+            return data
+        kept = {key: value for key, value in data.last_event_attributes.items() if key in self._ids}
+        return replace(data, last_event_attributes=kept)
+
 
 class ParroAnnouncementEvent(_ParroEvent):
     _attr_translation_key = "announcement"
-    _unrecorded_attributes = frozenset({"title", "group", "author"})
+    _ids = frozenset({"announcement_id", "published"})
+    _unrecorded_attributes = _ids | {"title", "group", "author", "photos"}
 
     def __init__(self, coordinator: ParroDataUpdateCoordinator) -> None:
         super().__init__(coordinator, "announcement")
         self._attr_event_types = [EVENT_NEW_ANNOUNCEMENT]
+        self._details = coordinator.options.announcement_details
         announcements = coordinator.data.announcements
         self._seen = [item.announcement_id for item in reversed(announcements)]
         now = dt_util.utcnow()
         self._watermark = min(max((item.published for item in announcements if item.published), default=now), now)
+
+    def _attributes(self, item: ParroAnnouncement) -> dict[str, Any]:
+        ids = {"announcement_id": item.announcement_id, "published": iso(item.published)}
+        if not self._details:
+            return ids
+        details = {"title": item.title, "group": item.group_name, "author": item.author}
+        return {**ids, **details, "photos": len(item.photo_urls)}
 
     def _is_new(self, item: ParroAnnouncement, seen: set[int]) -> bool:
         recent = item.published is not None and item.published >= self._watermark
@@ -64,14 +81,7 @@ class ParroAnnouncementEvent(_ParroEvent):
         for item in new:
             self._seen.append(item.announcement_id)
             self._watermark = max(self._watermark, min(item.published or now, now))
-            attributes = {
-                "title": item.title,
-                "group": item.group_name,
-                "author": item.author,
-                "published": iso(item.published),
-                "photos": len(item.images),
-            }
-            self._trigger_event(EVENT_NEW_ANNOUNCEMENT, attributes)
+            self._trigger_event(EVENT_NEW_ANNOUNCEMENT, self._attributes(item))
             self.async_write_ha_state()
         del self._seen[:-SEEN_LIMIT]
         if not new:
@@ -80,41 +90,30 @@ class ParroAnnouncementEvent(_ParroEvent):
 
 class ParroChatMessageEvent(_ParroEvent):
     _attr_translation_key = "chat_message"
-    _unrecorded_attributes = frozenset({"sender", "preview"})
+    _ids = frozenset({"conversation_id", "conversation_type", "received"})
+    _unrecorded_attributes = _ids | {"sender", "preview"}
 
     def __init__(self, coordinator: ParroDataUpdateCoordinator) -> None:
         super().__init__(coordinator, "chat_message")
         self._attr_event_types = [EVENT_NEW_CHAT_MESSAGE]
+        self._details = coordinator.options.chat_details
         self._started = dt_util.utcnow()
-        self._last_message_at = {room.room_id: room.last_message_at for room in coordinator.data.chat_rooms or []}
-
-    async def async_get_last_event_data(self) -> EventExtraStoredData | None:
-        data = await super().async_get_last_event_data()
-        if data is None or not data.last_event_attributes or self.coordinator.options.chat_details:
-            return data
-        hidden = self._unrecorded_attributes
-        attributes = {key: value for key, value in data.last_event_attributes.items() if key not in hidden}
-        return replace(data, last_event_attributes=attributes)
+        self._last_message_at = {room.room_id: room.last_message_at for room in coordinator.data.chat_rooms}
 
     def _is_new(self, room: ParroChatRoom) -> bool:
         previous = self._last_message_at.get(room.room_id, self._started)
         return room.last_message_at is not None and (previous is None or room.last_message_at > previous)
 
     def _attributes(self, room: ParroChatRoom) -> dict[str, Any]:
-        attributes: dict[str, Any] = {
-            "conversation_id": room.room_id,
-            "conversation_type": room.kind,
-            "received": iso(room.last_message_at),
-        }
-        if self.coordinator.options.chat_details:
-            attributes["sender"] = room.shown_sender
-            attributes["preview"] = truncate(room.last_message, CHAT_PREVIEW_LIMIT)
-        return attributes
+        ids = {"conversation_id": room.room_id, "conversation_type": room.kind, "received": iso(room.last_message_at)}
+        if not self._details:
+            return ids
+        return ids | {"sender": room.shown_sender, "preview": truncate(room.last_message, CHAT_PREVIEW_LIMIT)}
 
     @callback
     def _handle_coordinator_update(self) -> None:
         data = self.coordinator.data
-        new = [room for room in data.chat_rooms or [] if self._is_new(room)]
+        new = [room for room in data.chat_rooms if self._is_new(room)]
         self._last_message_at |= {room.room_id: room.last_message_at for room in new}
         fired = [
             room

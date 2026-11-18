@@ -2,7 +2,8 @@
   "config": {
     "abort": {
       "already_configured": "Dit Parro-account is al ingesteld.",
-      "reauth_successful": "Opnieuw aangemeld."
+      "reauth_successful": "Opnieuw aangemeld.",
+      "reconfigure_successful": "De Home Assistant-gebruiker van dit Parro-account is opgeslagen."
     },
     "error": {
       "account_locked": "Je Parro-account is geblokkeerd na te veel verkeerde wachtwoorden. Stel je wachtwoord opnieuw in op de aanmeldpagina van Parro of vraag het aan je school, en probeer het daarna opnieuw.",
@@ -42,6 +43,16 @@
         "description": "Je Parro-sessie is beëindigd. Meld je opnieuw aan met het e-mailadres (of de gebruikersnaam) en het wachtwoord van je Parro-account.\n\nParnasSys blokkeert een account na een paar verkeerde wachtwoorden. Home Assistant probeert een wachtwoord nooit zelf opnieuw.",
         "title": "Opnieuw aanmelden bij Parro"
       },
+      "reconfigure": {
+        "data": {
+          "user": "Home Assistant-gebruiker"
+        },
+        "data_description": {
+          "user": "De Home Assistant-gebruiker van wie dit Parro-account is. Alleen deze gebruiker ziet de gesprekken in de Parro-kaart, en alleen deze gebruiker en automatiseringen kunnen vanuit dit account antwoorden. Andere gebruikers kunnen de berichten in de Parro-kaart alleen lezen als ze in de opties zijn gekozen. Berichtdetails tonen en Gespreksdetails tonen maken deze teksten voor elke gebruiker leesbaar."
+        },
+        "description": "Kies de Home Assistant-gebruiker van wie dit Parro-account is. Je hoeft je niet opnieuw aan te melden.",
+        "title": "Home Assistant-gebruiker wijzigen"
+      },
       "user": {
         "data": {
           "password": "Wachtwoord",
@@ -50,7 +61,7 @@
         },
         "data_description": {
           "password": "Wordt één keer naar de officiële aanmeldpagina van Parro gestuurd en nooit opgeslagen.",
-          "user": "De Home Assistant-gebruiker van wie dit Parro-account is. De Parro-kaart toont dit account aan die gebruiker, en antwoorden van die gebruiker worden met dit account verstuurd.",
+          "user": "De Home Assistant-gebruiker van wie dit Parro-account is. De Parro-kaart toont dit account aan die gebruiker, en antwoorden van die gebruiker worden met dit account verstuurd. Je kunt dit later wijzigen met Herconfigureer.",
           "username": "Het e-mailadres of de gebruikersnaam waarmee je je bij Parro aanmeldt."
         },
         "description": "Parro-HA is een onofficieel opensource-hobbyproject. Het is niet gemaakt, goedgekeurd of ondersteund door Parro of ParnasSys.\n\nMeld je aan met het e-mailadres (of de gebruikersnaam) en het wachtwoord van je Parro-account. Die worden één keer verstuurd, alleen naar de officiële aanmeldpagina van ParnasSys, en nooit opgeslagen. Home Assistant bewaart een sessie die zichzelf vernieuwt.\n\nParnasSys blokkeert een account na een paar verkeerde wachtwoorden. Home Assistant probeert een wachtwoord nooit zelf opnieuw.",
@@ -131,6 +142,9 @@
     "conversation_not_available": {
       "message": "Op dit gesprek kan niet worden geantwoord. Dat kan alleen bij actieve een-op-een- en gezinsgesprekken waarin antwoorden aanstaat."
     },
+    "conversations_off": {
+      "message": "Parro-HA bewaart de gesprekken van dit account niet. Zet Gesprekken in de Parro-kaart aan in de Parro-opties."
+    },
     "duplicate_message": {
       "message": "Hetzelfde bericht is de afgelopen 6 uur al naar dit gesprek gestuurd, of misschien gestuurd."
     },
@@ -141,7 +155,7 @@
       "message": "Het bericht is leeg."
     },
     "message_link": {
-      "message": "Berichten met links of e-mailadressen worden voor de veiligheid niet verstuurd."
+      "message": "Berichten met links, webadressen, IP-adressen of e-mailadressen worden voor de veiligheid niet verstuurd. Twee woorden met een punt ertussen, zoals voorbeeld.nl, tellen als webadres, en vier getallen met punten ertussen, zoals 1.2.3.4, als IP-adres."
     },
     "message_markup": {
       "message": "Alleen platte tekst wordt verstuurd, zonder HTML, code, markdown-links of templatecode. Laat backticks, backslashes, vierkante haken, accolades, HTML-tags en HTML-codes weg, en zet een spatie na een ampersand (&) of een kleiner-dan-teken."
@@ -156,7 +170,7 @@
       "message": "Het bericht heeft meer dan 20 regels."
     },
     "no_account": {
-      "message": "Kan niet bepalen welk Parro-account het antwoord moet versturen. Automatiseringen moeten het Parro-account in de actie kiezen."
+      "message": "Kan je Parro-account niet vinden. Automatiseringen moeten het Parro-account in de actie kiezen."
     },
     "rate_limited": {
       "message": "Te veel antwoorden. Wacht een minuut tussen antwoorden op hetzelfde gesprek. Er gaan maximaal 5 antwoorden per uur en 20 per dag uit."
@@ -174,7 +188,16 @@
       "message": "Parro heeft een eerder antwoord geweigerd, daarom is versturen een uur gepauzeerd."
     },
     "update_failed": {
-      "message": "Parro-gegevens konden niet worden bijgewerkt: {error}"
+      "message": "Parro gaf een onverwacht antwoord, daarom zijn de Parro-gegevens niet bijgewerkt."
+    },
+    "update_unreachable": {
+      "message": "Parro is niet bereikbaar. De Parro-gegevens worden weer bijgewerkt zodra Parro terug is."
+    }
+  },
+  "issues": {
+    "details_public": {
+      "description": "Berichtdetails tonen of Gespreksdetails tonen staat aan voor {title}, dus berichtteksten of gespreksdetails staan in entiteitsattributen die elke Home Assistant-gebruiker kan lezen. Accounts die voor versie 0.4.0 zijn toegevoegd houden berichtdetails aan, zodat hun kaarten en automatiseringen blijven werken. Zet beide opties uit in de Parro-opties zodra die de Parro-kaart en de acties Berichten ophalen en Gesprekken ophalen gebruiken.",
+      "title": "Parro-teksten zijn voor elke gebruiker leesbaar"
     }
   },
   "options": {
@@ -182,23 +205,59 @@
       "init": {
         "data": {
           "announcement_count": "Aantal berichten",
+          "announcement_details": "Berichtdetails tonen",
+          "announcement_photos": "Foto's bij berichten",
+          "card_conversations": "Gesprekken in de Parro-kaart",
           "chat_details": "Gespreksdetails tonen",
+          "child_photos": "Profielfoto's van kinderen",
+          "children": "Kinderen",
           "photo_count": "Recente foto's",
           "reply_conversations": "Gesprekken waarop Home Assistant mag antwoorden",
-          "update_interval": "Update-interval"
+          "update_interval": "Update-interval",
+          "viewers": "Andere gebruikers die dit account mogen lezen"
         },
         "data_description": {
-          "announcement_count": "Aantal recente berichten in de attributen van de sensor Laatste bericht.",
-          "chat_details": "Voegt namen en het laatste bericht van elk gesprek toe aan de sensor Ongelezen gesprekken, en de afzender en het bericht aan chatbericht-events. Standaard uit voor privacy.",
-          "photo_count": "Aantal afbeeldingsentiteiten met de meest recente foto's uit berichten. Standaard 0 (uit), omdat klassenfoto's meestal ook andermans kinderen laten zien.",
+          "announcement_count": "Aantal recente berichten in de Parro-kaart, de pop-ups, de actie Berichten ophalen en de details van Laatste bericht.",
+          "announcement_details": "Voegt de titel, tekst en auteur van de laatste berichten toe aan Laatste bericht, de titel van het laatste bericht aan elke sensor Groep, de titel en groep aan de recente foto's, en de titel, groep en auteur aan Bericht-events. Elke Home Assistant-gebruiker kan deze lezen, ook in de pop-ups van dit account. Aan voor accounts die voor versie 0.4.0 zijn toegevoegd, zodat hun kaarten, pop-ups en automatiseringen blijven werken, en uit voor nieuwe accounts. De eigen gebruiker van het account en de hieronder gekozen gebruikers lezen de berichten ook zonder deze optie in de Parro-kaart.",
+          "announcement_photos": "De Parro-kaart en de pop-ups tonen tot 4 foto's onder elk bericht, alleen aan de gebruikers die dit account mogen lezen. Aan voor nieuwe accounts. Accounts die voor versie 0.4.0 zijn toegevoegd beginnen met deze optie uit, zodat hun kaarten er hetzelfde uitzien.",
+          "card_conversations": "De Parro-kaart en de pop-ups tonen de gesprekken van dit account en het antwoordformulier aan de eigen Home Assistant-gebruiker. Aan voor nieuwe accounts. Accounts die voor versie 0.4.0 zijn toegevoegd beginnen met de instelling van Gespreksdetails tonen, zodat hun kaarten er hetzelfde uitzien. Zonder Gespreksdetails tonen of een gesprek waarop Home Assistant mag antwoorden, hebben het Chatbericht-event en de actie Gesprekken ophalen deze optie ook nodig.",
+          "chat_details": "Voegt de namen en het laatste bericht van de 10 meest recente gesprekken toe aan Ongelezen gesprekken, en de afzender en het bericht aan Chatbericht-events. Elke Home Assistant-gebruiker kan deze lezen, ook in de pop-ups. Standaard uit voor privacy.",
+          "child_photos": "Een afbeeldingsentiteit met de profielfoto van elk kind. Werkt alleen met Kinderen. Standaard uit, omdat elke Home Assistant-gebruiker afbeeldingsentiteiten kan zien.",
+          "children": "Een apparaat per kind met de groep en een eigen agenda. Standaard uit, omdat apparaatnamen de voornamen van je kinderen bevatten, die elke Home Assistant-gebruiker kan zien.",
+          "photo_count": "Aantal afbeeldingsentiteiten met de meest recente foto's uit berichten. Standaard 0 (uit), omdat klassenfoto's meestal ook andermans kinderen laten zien en elke Home Assistant-gebruiker afbeeldingsentiteiten kan zien. De Parro-kaart toont ze in een blok Recente foto's.",
           "reply_conversations": "Een-op-een- en gezinsgesprekken waarop de Parro-actie Chatantwoord versturen mag antwoorden, in platte tekst. Standaard geen, dus antwoorden staat uit. Alleen automatiseringen en de Home Assistant-gebruiker van dit account kunnen versturen.",
-          "update_interval": "Hoe vaak Parro wordt gecontroleerd op nieuwe informatie."
+          "update_interval": "Hoe vaak Parro wordt gecontroleerd op nieuwe informatie.",
+          "viewers": "Naast de Home Assistant-gebruiker van dit account kunnen deze gebruikers de berichten en foto's lezen in de Parro-kaart en de pop-ups. Gesprekken en antwoorden blijven bij de eigen gebruiker van het account."
         },
         "title": "Parro-opties"
       }
     }
   },
   "services": {
+    "get_announcements": {
+      "description": "Geeft de recente berichten van een Parro-account terug uit wat Home Assistant al heeft, zonder Parro iets te vragen. Voor meldingen en andere automatiseringen. Het antwoord blijft bewaard in de trace van de automatisering of het script.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Het Parro-account om te lezen. Laat dit leeg om je eigen Parro-account te gebruiken. Automatiseringen moeten er een kiezen.",
+          "name": "Parro-account"
+        },
+        "count": {
+          "description": "Hoeveel van de nieuwste berichten terugkomen, hooguit het aantal uit de opties. Leeg geeft dat aantal.",
+          "name": "Aantal"
+        }
+      },
+      "name": "Berichten ophalen"
+    },
+    "get_conversations": {
+      "description": "Geeft de gesprekken van een Parro-account met hun laatste bericht terug uit wat Home Assistant al heeft, zonder ze in Parro te openen. Alleen de gebruiker van het account en automatiseringen kunnen dit gebruiken. Het antwoord blijft bewaard in de trace van de automatisering of het script.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Het Parro-account om te lezen. Laat dit leeg om je eigen Parro-account te gebruiken. Automatiseringen moeten er een kiezen.",
+          "name": "Parro-account"
+        }
+      },
+      "name": "Gesprekken ophalen"
+    },
     "send_message": {
       "description": "Verstuurt een antwoord in platte tekst naar een Parro-gesprek dat in de opties is toegestaan. Maximaal één antwoord per gesprek per minuut, 5 per uur en 20 per dag.",
       "fields": {
@@ -207,11 +266,11 @@
           "name": "Parro-account"
         },
         "conversation_id": {
-          "description": "Het id van het gesprek, uit het attribuut conversations van de sensor Ongelezen gesprekken of uit het chatbericht-event.",
+          "description": "Het id van het gesprek, uit de actie Gesprekken ophalen of uit het chatbericht-event.",
           "name": "Gesprek"
         },
         "message": {
-          "description": "Platte tekst van maximaal 1000 tekens en 20 regels. Links, e-mailadressen, HTML, markdown-links en templatecode worden geweigerd.",
+          "description": "Platte tekst van maximaal 1000 tekens en 20 regels. Links, webadressen, IP-adressen, e-mailadressen, HTML, markdown-links en templatecode worden geweigerd.",
           "name": "Bericht"
         }
       },

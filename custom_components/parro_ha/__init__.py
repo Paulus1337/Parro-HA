@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 from contextlib import suppress
+from functools import partial
 from pathlib import Path
-from typing import Any
 
-from homeassistant.components import websocket_api
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.exceptions import ConfigEntryAuthFailed, ServiceValidationError, Unauthorized
-from homeassistant.helpers import config_validation as cv, device_registry as dr, entity_registry as er
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import config_validation as cv, device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 import voluptuous as vol
@@ -23,12 +23,20 @@ from .const import (
     ATTR_CONFIG_ENTRY_ID,
     ATTR_CONVERSATION_ID,
     ATTR_MESSAGE,
+    CONF_ANNOUNCEMENT_DETAILS,
+    CONF_ANNOUNCEMENT_PHOTOS,
+    CONF_CARD_CONVERSATIONS,
+    CONF_CHAT_DETAILS,
+    CONF_CHILD_PHOTOS,
+    CONF_CHILDREN,
     CONF_TOKEN,
-    CONF_USER,
     DOMAIN,
     SERVICE_SEND_MESSAGE,
+    SIGNAL_UPDATE,
 )
-from .coordinator import ParroConfigEntry, ParroDataUpdateCoordinator, device_keys, entry_key
+from .content import async_service_entry, async_setup_content, owns
+from .coordinator import ParroConfigEntry, ParroDataUpdateCoordinator, device_keys
+from .media import photo_cache
 
 PLATFORMS = [Platform.CALENDAR, Platform.EVENT, Platform.IMAGE, Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -41,70 +49,28 @@ SEND_MESSAGE_SCHEMA = vol.Schema(
 )
 CARD_URL = f"/{DOMAIN}/parro-card.js"
 CARD_PATH = Path(__file__).parent / "frontend" / "parro-card.js"
-ACCOUNT_ENTITIES = (
-    "unread_announcements",
-    "unread_conversations",
-    "unread_calendar_items",
-    "latest_announcement",
-    "next_event",
-    "school_calendar",
-    "announcement",
-    "chat_message",
-)
-CHILD_ENTITIES = ("photo", "class", "calendar")
-
-
-@callback
-def _async_account(hass: HomeAssistant, user_id: str) -> ParroConfigEntry | None:
-    own = [entry for entry in hass.config_entries.async_loaded_entries(DOMAIN) if entry.data.get(CONF_USER) == user_id]
-    return min(own, key=lambda entry: entry.created_at, default=None)
-
-
-@callback
-def _async_entities(hass: HomeAssistant, entry: ParroConfigEntry) -> dict[str, Any]:
-    registry = er.async_get(hass)
-    entities = er.async_entries_for_config_entry(registry, entry.entry_id)
-    ids = {item.unique_id: item.entity_id for item in entities if not item.disabled}
-    account, coordinator = entry_key(entry), entry.runtime_data
-    photos = (ids.get(f"{account}_recent_photo_{number}") for number in range(1, coordinator.options.photo_count + 1))
-    return {
-        "entry_id": entry.entry_id,
-        "entities": {key: ids.get(f"{account}_{key}") for key in ACCOUNT_ENTITIES},
-        "recent_photos": [entity_id for entity_id in photos if entity_id],
-        "children": [
-            {key: ids.get(f"{account}_{child_id}_{key}") for key in CHILD_ENTITIES}
-            for child_id in coordinator.data.children
-        ],
-    }
-
-
-@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/account"})
-@callback
-def _websocket_account(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
-    entry = _async_account(hass, connection.user.id)
-    connection.send_result(msg["id"], None if entry is None else _async_entities(hass, entry))
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async def async_send_message(call: ServiceCall) -> None:
-        user_id = call.context.user_id
-        if entry_id := call.data.get(ATTR_CONFIG_ENTRY_ID):
-            entry = hass.config_entries.async_get_entry(entry_id)
-        elif user_id is None or (entry := _async_account(hass, user_id)) is None:
-            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_account")
-        if user_id is not None:
-            user = await hass.auth.async_get_user(user_id)
-            owner = entry.data.get(CONF_USER) if entry is not None and entry.domain == DOMAIN else None
-            if user is None or not user.is_active or user.id != owner:
-                raise Unauthorized(context=call.context)
-        if entry is None or entry.domain != DOMAIN or entry.state is not ConfigEntryState.LOADED:
-            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="entry_not_loaded")
+        entry = await async_service_entry(hass, call, owns)
         await entry.runtime_data.chat.async_send(call.data[ATTR_CONVERSATION_ID], call.data[ATTR_MESSAGE])
 
     hass.services.async_register(DOMAIN, SERVICE_SEND_MESSAGE, async_send_message, schema=SEND_MESSAGE_SCHEMA)
-    websocket_api.async_register_command(hass, _websocket_account)
+    async_setup_content(hass)
     await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False)])
     add_extra_js_url(hass, f"{CARD_URL}?v={(await async_get_integration(hass, DOMAIN)).version}")
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> bool:
+    if entry.version > 1:
+        return False
+    if entry.minor_version < 2:
+        chats = entry.options.get(CONF_CHAT_DETAILS) is True
+        kept = {CONF_ANNOUNCEMENT_PHOTOS: False, CONF_CARD_CONVERSATIONS: chats, CONF_ANNOUNCEMENT_DETAILS: True}
+        options = {CONF_CHILDREN: True, CONF_CHILD_PHOTOS: True, **kept, **entry.options}
+        hass.config_entries.async_update_entry(entry, options=options, minor_version=2)
     return True
 
 
@@ -117,16 +83,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> boo
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(coordinator.async_add_listener(partial(async_dispatcher_send, hass, SIGNAL_UPDATE)))
+    entry.async_on_unload(hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, coordinator.async_stop))
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await entry.runtime_data.client.async_close()
+    photo_cache(hass).clear()
     return unloaded
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> None:
+    ir.async_delete_issue(hass, DOMAIN, f"details_{entry.entry_id}")
     await async_remove_guard(hass, entry.entry_id)
     with suppress(ParroError):
         await ParroAuth(async_get_clientsession(hass)).async_revoke(TokenSet.from_dict(entry.data.get(CONF_TOKEN)))
@@ -137,5 +107,5 @@ async def async_remove_config_entry_device(
 ) -> bool:
     if entry.state is not ConfigEntryState.LOADED:
         return False
-    in_use = device_keys(entry, entry.runtime_data.data.children)
+    in_use = device_keys(entry, entry.runtime_data.child_ids)
     return not any(domain == DOMAIN and identifier in in_use for domain, identifier in device_entry.identifiers)

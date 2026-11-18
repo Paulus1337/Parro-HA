@@ -30,7 +30,12 @@ _DAY = 24 * _HOUR
 _LINE_BREAKS = {0x09: " ", 0x0B: "\n", 0x0C: "\n", 0x0D: "\n", 0x2028: "\n", 0x2029: "\n"}
 _KEPT_FORMAT_CHARACTERS = frozenset(map(chr, (0x0A, 0x200C, 0x200D)))
 _REMOVED_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Co"})
-_LINK = re.compile(r"[a-z][a-z0-9+.-]*://|www\.[^\s/$.?#]\S|[\w.%+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)
+_LINK = re.compile(
+    r"[a-z][0-9+.-]*://|www\.[^\s/$.?#]\S|[\w.%+-]@[\w-]+(?:\.[\w-]+)+"
+    r"|[\w-]\.[^\W\d_]{2,24}(?!\w)|(?<!\w)(?<!\d\.)\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)",
+    re.IGNORECASE,
+)
+_LABEL_DOT = re.compile(r"(?<=[a-z0-9-])\u3002(?=[a-z0-9])", re.IGNORECASE)
 _MARKUP = re.compile(r"<[a-z/!?]|[`{}\[\]\\]|&(?:#|lt|gt|amp|quot|\w+;)", re.IGNORECASE)
 _PLACEHOLDERS = frozenset({"unknown", "unavailable", "none", "null"})
 _BLANK = frozenset(
@@ -87,7 +92,7 @@ def clean_message(text: Any) -> str:
     plain = "".join(c for c in f"{text}\n{unicodedata.normalize('NFKC', text)}" if _visible(c) or c.isspace())
     if _MARKUP.search(plain):
         raise _refusal("message_markup")
-    if _LINK.search(plain):
+    if _LINK.search(_LABEL_DOT.sub(".", plain)):
         raise _refusal("message_link")
     return text
 
@@ -222,12 +227,16 @@ class ParroChat:
         async with guard.lock:
             if guard.removed:
                 raise _refusal("entry_not_loaded")
+            if coordinator.ended:
+                raise coordinator.session_ended()
             attempt = SendGuard.attempt(room_id, text)
             guard.check(attempt)
             try:
                 rooms = await coordinator.async_get_chat_rooms()
             except ParroError as err:
                 raise self._error(err) from err
+            if coordinator.ended:
+                raise coordinator.session_ended()
             if not any(room.room_id == room_id and room.can_reply for room in rooms):
                 raise _refusal("conversation_not_available")
             await guard.async_record(attempt)

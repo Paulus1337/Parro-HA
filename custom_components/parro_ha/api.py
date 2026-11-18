@@ -46,6 +46,7 @@ MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 TOKEN_REFRESH_MARGIN = 120
 DEFAULT_TOKEN_LIFETIME = 3600
 PAGE_SIZE = 50
+LIST_LIMIT = 200
 ANNOUNCEMENT_DTYPE = "event.RAnnouncementEventPrimer"
 CALENDAR_DTYPE = "event.RCalendarItemEventPrimer"
 HOME_GROUP_DTYPE = "identity.RHomeGroup"
@@ -224,8 +225,10 @@ class ParroAuth:
                 async with self._session.post(
                     REVOKE_URL, data=form, timeout=REQUEST_TIMEOUT, allow_redirects=False
                 ) as response:
-                    _LOGGER.debug("Parro answered the sign-out request with HTTP %s", response.status)
-            except REQUEST_ERRORS:
+                    level = logging.DEBUG if 200 <= response.status < 300 else logging.WARNING
+                    _LOGGER.log(level, "Parro answered the sign-out request with HTTP %s", response.status)
+            except REQUEST_ERRORS as err:
+                _LOGGER.warning("Could not reach the Parro sign-in service to sign out (%s)", type(err).__name__)
                 return
 
     async def _async_token_request(self, grant_type: str, **fields: str) -> TokenSet:
@@ -396,11 +399,11 @@ class ParroClient:
         return account
 
     async def async_get_children(self) -> dict[int, ParroChild]:
-        children = parse_items(await self._async_get_items("child"), ParroChild.from_api)
+        children = parse_items(await self._async_get_items("child", limit=LIST_LIMIT), ParroChild.from_api)
         return {child.child_id: child for child in children}
 
     async def async_get_groups(self) -> dict[int, ParroGroup]:
-        rows = await self._async_get_items("group", params={"dtype": HOME_GROUP_DTYPE})
+        rows = await self._async_get_items("group", params={"dtype": HOME_GROUP_DTYPE}, limit=LIST_LIMIT)
         return {group.group_id: group for group in parse_items(rows, ParroGroup.from_api)}
 
     async def async_get_unread_counts(self) -> ParroUnreadCounts:
@@ -421,7 +424,10 @@ class ParroClient:
             "sort": "desc-stream",
             "sortDateSince": since.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         }
-        return events_from_rows(await self._async_get_items("event", params=params, limit=limit, stop=reached_until))
+        rows = await self._async_get_items("event", params=params, limit=limit, stop=reached_until)
+        if until is not None and len(rows) >= limit:
+            _LOGGER.debug("This calendar period has %d or more Parro rows; later items may be left out", limit)
+        return events_from_rows(rows)
 
     async def async_get_chat_rooms(self, limit: int = PAGE_SIZE) -> list[ParroChatRoom]:
         return parse_items(await self._async_get_items("chatroom", limit=limit), ParroChatRoom.from_api)

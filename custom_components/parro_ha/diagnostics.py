@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from .api import TokenSet, finite_number, token_claims
 from .const import CONF_USER
 from .coordinator import ParroConfigEntry
+from .entity import iso
 
 _KIND = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,31}")
 
@@ -46,12 +47,20 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ParroCo
             "update_interval": options.update_interval,
             "announcement_count": options.announcement_count,
             "photo_count": options.photo_count,
+            "children": options.children,
+            "child_photos": options.child_photos,
+            "announcement_photos": options.announcement_photos,
+            "card_conversations": options.card_conversations,
+            "announcement_details": options.announcement_details,
             "chat_details": options.chat_details,
+            "viewers": len(options.viewers),
             "reply_conversations": len(options.reply_conversations),
         },
         "linked_user": bool(entry.data.get(CONF_USER)),
+        "state": entry.state.value,
         "session": _session(coordinator.client.tokens),
         "last_update_success": coordinator.last_update_success,
+        "last_update_success_time": iso(coordinator.last_update_success_time),
         "data": {
             "children": len(data.children),
             "groups": [
@@ -65,16 +74,16 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ParroCo
                 for group in data.groups.values()
             ],
             "announcements": len(data.announcements),
-            "announcements_with_photos": sum(1 for item in data.announcements if item.images),
+            "announcements_with_photos": sum(1 for item in data.announcements if item.photo_urls),
             "attachment_kinds": _kinds(
                 attachment.kind for item in data.announcements for attachment in item.attachments
             ),
             "upcoming_events": len(data.events),
             "event_kinds": _kinds(event.kind for event in data.events),
             "photos": len(data.photos),
-            "chat_rooms": None if data.chat_rooms is None else len(data.chat_rooms),
-            "chat_room_kinds": _kinds(room.room_type for room in data.chat_rooms or []),
-            "replies_enabled": sum(1 for room in data.chat_rooms or [] if room.can_reply),
+            "chat_rooms": len(data.chat_rooms),
+            "chat_room_kinds": _kinds(room.room_type for room in data.chat_rooms),
+            "replies_enabled": sum(1 for room in data.chat_rooms if room.can_reply),
             "unread": {
                 "announcements": data.unread.announcements,
                 "calendar_items": data.unread.calendar_items,

@@ -5,15 +5,9 @@ from typing import Any
 
 import aiohttp
 from homeassistant.components.http import KEY_HASS_USER
-from homeassistant.config_entries import (
-    SOURCE_REAUTH,
-    ConfigEntryState,
-    ConfigFlow,
-    ConfigFlowResult,
-    OptionsFlowWithReload,
-)
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession, async_get_clientsession
 from homeassistant.helpers.http import current_request
 from homeassistant.helpers.selector import (
@@ -35,16 +29,23 @@ from .api import ParroAuthenticationError, ParroClient, ParroConnectionError, Pa
 from .const import (
     ANNOUNCEMENT_COUNT,
     CONF_ACCOUNT,
+    CONF_ANNOUNCEMENT_DETAILS,
+    CONF_ANNOUNCEMENT_PHOTOS,
+    CONF_CARD_CONVERSATIONS,
     CONF_CHAT_DETAILS,
+    CONF_CHILD_PHOTOS,
+    CONF_CHILDREN,
     CONF_REPLY_CONVERSATIONS,
     CONF_TOKEN,
     CONF_USER,
+    CONF_VIEWERS,
     DOMAIN,
     LOGGER,
     PHOTO_COUNT,
     UPDATE_INTERVAL,
     IntOption,
 )
+from .content import ready
 from .coordinator import ParroConfigEntry, ParroOptions
 from .login import ParroLogin, ParroLoginError
 
@@ -66,8 +67,21 @@ def _choice(
     return SelectSelector(SelectSelectorConfig(options=options, multiple=multiple, mode=mode))
 
 
+async def _async_users(hass: HomeAssistant) -> dict[str, str]:
+    users = await hass.auth.async_get_users()
+    return {user.id: user.name or user.id for user in users if user.is_active and not user.system_generated}
+
+
+def _users(users: dict[str, str], *, multiple: bool = False) -> SelectSelector:
+    options = [SelectOptionDict(value=user_id, label=name) for user_id, name in users.items()]
+    mode = SelectSelectorMode.LIST if multiple else SelectSelectorMode.DROPDOWN
+    return _choice(options, multiple=multiple, mode=mode)
+
+
 def _error(err: ParroError) -> tuple[str, dict[str, str]]:
     if isinstance(err, ParroLoginError):
+        if err.reason == "login_changed":
+            LOGGER.warning("The Parro sign-in page did not look as expected (%s)", err.check)
         return err.reason, {} if err.attempts_left is None else {"attempts": str(err.attempts_left)}
     if isinstance(err, ParroConnectionError):
         return "cannot_connect", {}
@@ -81,18 +95,27 @@ SIGN_IN_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): _text(TextSelectorType.PASSWORD, "current-password"),
     }
 )
+SWITCHES = {
+    CONF_CHILDREN: False,
+    CONF_CHILD_PHOTOS: False,
+    CONF_ANNOUNCEMENT_PHOTOS: True,
+    CONF_CARD_CONVERSATIONS: True,
+    CONF_ANNOUNCEMENT_DETAILS: False,
+    CONF_CHAT_DETAILS: False,
+}
 OPTIONS_SCHEMA = vol.Schema(
     {
         **_number(UPDATE_INTERVAL, "min"),
         **_number(ANNOUNCEMENT_COUNT),
         **_number(PHOTO_COUNT),
-        vol.Required(CONF_CHAT_DETAILS, default=False): BooleanSelector(),
+        **{vol.Required(key, default=default): BooleanSelector() for key, default in SWITCHES.items()},
     }
 )
 
 
 class ParroConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         self._session: aiohttp.ClientSession | None = None
@@ -112,21 +135,27 @@ class ParroConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None and not self._running:
             self._user = user_input[CONF_USER]
-        users = {
-            user.id: user.name or user.id
-            for user in await self.hass.auth.async_get_users()
-            if user.is_active and not user.system_generated
-        }
+        users = await _async_users(self.hass)
         request = current_request.get()
         current = request.get(KEY_HASS_USER) if request is not None else None
         default = self._user or (current.id if current is not None and current.id in users else vol.UNDEFINED)
-        options = [SelectOptionDict(value=user_id, label=name) for user_id, name in users.items()]
-        choice = _choice(options, mode=SelectSelectorMode.DROPDOWN)
-        self._schema = SIGN_IN_SCHEMA.extend({vol.Required(CONF_USER, default=default): choice})
+        self._schema = SIGN_IN_SCHEMA.extend({vol.Required(CONF_USER, default=default): _users(users)})
         return await self._async_step_sign_in("user", user_input)
 
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        entry = self._get_reconfigure_entry()
+        if user_input is not None:
+            user = user_input[CONF_USER]
+            options = {**entry.options, CONF_VIEWERS: sorted(ParroOptions.from_mapping(entry.options).viewers - {user})}
+            return self.async_update_reload_and_abort(
+                entry, data_updates={CONF_USER: user}, options=options, reason="reconfigure_successful"
+            )
+        users = await _async_users(self.hass)
+        default = current if (current := entry.data.get(CONF_USER)) in users else vol.UNDEFINED
+        schema = vol.Schema({vol.Required(CONF_USER, default=default): _users(users)})
+        return self.async_show_form(step_id="reconfigure", data_schema=schema)
+
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
-        self._user = entry_data.get(CONF_USER)
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -165,16 +194,20 @@ class ParroConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_account()
 
     async def async_step_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        if user_input is None or self._login is None:
+        if user_input is None or self._running:
             options = [SelectOptionDict(value=str(index), label=label) for index, label in enumerate(self._accounts)]
             return self.async_show_form(
                 step_id="account", data_schema=vol.Schema({vol.Required(CONF_ACCOUNT): _choice(options)})
             )
+        if self._login is None:
+            return self._fail("choice_expired")
+        self._running = True
         try:
-            tokens = await self._login.async_choose(int(user_input[CONF_ACCOUNT]))
+            return await self._async_finish(await self._login.async_choose(int(user_input[CONF_ACCOUNT])))
         except ParroError as err:
             return self._fail(*_error(err))
-        return await self._async_finish(tokens)
+        finally:
+            self._running = False
 
     async def _async_finish(self, tokens: TokenSet) -> ConfigFlowResult:
         self._close_session()
@@ -190,14 +223,14 @@ class ParroConfigFlow(ConfigFlow, domain=DOMAIN):
             return self._fail("unknown")
         if account.guardian_id is None:
             return self._fail("not_a_parent")
-        data = {CONF_TOKEN: client.tokens.as_dict()}
-        if self._user:
-            data[CONF_USER] = self._user
-        if self.source == SOURCE_REAUTH:
-            if str(account.account_id) != (entry := self._get_reauth_entry()).unique_id:
+        reauth = self._get_reauth_entry() if self.source == SOURCE_REAUTH else None
+        user = reauth.data.get(CONF_USER) if reauth else self._user
+        data = {CONF_TOKEN: client.tokens.as_dict(), **({CONF_USER: user} if user else {})}
+        if reauth:
+            if str(account.account_id) != reauth.unique_id:
                 return self._fail("wrong_account")
-            return self.async_update_reload_and_abort(entry, data=data)
-        await self.async_set_unique_id(str(account.account_id))
+            return self.async_update_reload_and_abort(reauth, data=data, reason="reauth_successful")
+        await self.async_set_unique_id(str(account.account_id), raise_on_progress=False)
         self._abort_if_unique_id_configured()
         return self.async_create_entry(title="Parro", data=data)
 
@@ -234,10 +267,17 @@ class ParroConfigFlow(ConfigFlow, domain=DOMAIN):
 class ParroOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         options = dict(self.config_entry.options)
-        allowed = sorted(map(str, ParroOptions.from_mapping(options).reply_conversations))
+        options |= {key: options[key] is True for key in SWITCHES if key in options}
+        stored = ParroOptions.from_mapping(options)
+        allowed = sorted(map(str, stored.reply_conversations))
+        schema, owner = OPTIONS_SCHEMA, self.config_entry.data.get(CONF_USER)
         if user_input is not None:
+            if CONF_VIEWERS in user_input:
+                user_input[CONF_VIEWERS] = [user_id for user_id in user_input[CONF_VIEWERS] if user_id != owner]
             return self.async_create_entry(data={CONF_REPLY_CONVERSATIONS: allowed, **user_input})
-        schema = OPTIONS_SCHEMA
+        if users := {user_id: name for user_id, name in (await _async_users(self.hass)).items() if user_id != owner}:
+            options[CONF_VIEWERS] = [user_id for user_id in users if user_id in stored.viewers]
+            schema = schema.extend({vol.Required(CONF_VIEWERS, default=[]): _users(users, multiple=True)})
         if (conversations := await self._async_conversations()) is not None and (conversations or allowed):
             listed = {option["value"] for option in conversations}
             options[CONF_REPLY_CONVERSATIONS] = [room_id for room_id in allowed if room_id in listed]
@@ -247,7 +287,7 @@ class ParroOptionsFlow(OptionsFlowWithReload):
 
     async def _async_conversations(self) -> list[SelectOptionDict] | None:
         entry = self.config_entry
-        if entry.state is not ConfigEntryState.LOADED:
+        if not ready(self.hass, entry):
             return None
         try:
             rooms = await entry.runtime_data.async_get_chat_rooms()

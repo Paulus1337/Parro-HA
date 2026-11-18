@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
 from typing import Any
 from urllib.parse import urlsplit
@@ -89,6 +89,10 @@ def parse_items[T](rows: Iterable[Mapping[str, Any]], factory: Callable[[Mapping
 
 def full_name(person: Mapping[str, Any]) -> str:
     return " ".join(part for part in (_str(person, "firstname"), _str(person, "surname")) if part)
+
+
+def union[T](first: tuple[T, ...], second: tuple[T, ...]) -> tuple[T, ...]:
+    return tuple(dict.fromkeys((*first, *second)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,7 +184,6 @@ class ParroAttachment:
 @dataclass(frozen=True, slots=True)
 class ParroAnnouncement:
     announcement_id: int
-    group_name: str
     title: str
     text: str
     published: datetime | None
@@ -197,7 +200,6 @@ class ParroAnnouncement:
             return None
         return cls(
             announcement_id=announcement_id,
-            group_name=group.name,
             title=_str(data, "title"),
             text=_str(data, "contents"),
             published=parse_datetime(data.get("sortDate")) or parse_datetime(data.get("createdAt")),
@@ -211,6 +213,18 @@ class ParroAnnouncement:
     @property
     def images(self) -> tuple[ParroAttachment, ...]:
         return tuple(item for item in self.attachments if item.kind == "IMAGE")
+
+    @property
+    def group_name(self) -> str:
+        return self.group_names[0] if self.group_names else ""
+
+    @property
+    def photo_urls(self) -> tuple[str, ...]:
+        return tuple(url for item in self.images if (url := item.preview_url))
+
+    @property
+    def full_photo_urls(self) -> tuple[str, ...]:
+        return tuple(item.url or url for item in self.images if (url := item.preview_url))
 
 
 @dataclass(frozen=True, slots=True)
@@ -230,13 +244,8 @@ class ParroEvent:
         item_id = _self_id(item)
         start = parse_datetime(item.get("startDate"))
         end = parse_datetime(item.get("endDate")) or start
-        if (
-            item_id is None
-            or start is None
-            or end is None
-            or row.get("deleted") is True
-            or row.get("cancelled") is True
-        ):
+        flags = (data.get(key) is True for data in (row, item) for key in ("deleted", "cancelled"))
+        if item_id is None or start is None or end is None or any(flags):
             return None
         all_day = start.time() == _MIDNIGHT and end.time() == _MIDNIGHT
         span: tuple[date | datetime, date | datetime]
@@ -257,9 +266,11 @@ class ParroEvent:
 
 
 def events_from_rows(rows: Iterable[Mapping[str, Any]]) -> list[ParroEvent]:
-    events: dict[int, ParroEvent] = {}
+    events: dict[tuple[int, date | datetime, date | datetime], ParroEvent] = {}
     for event in parse_items(rows, ParroEvent.from_row):
-        events.setdefault(event.item_id, event)
+        seen = events.get(key := (event.item_id, event.start, event.end), event)
+        groups, children = union(seen.group_names, event.group_names), union(seen.child_ids, event.child_ids)
+        events[key] = replace(seen, group_names=groups, child_ids=children)
     return list(events.values())
 
 
@@ -282,7 +293,8 @@ class ParroChatRoom:
         if room_id is None or data.get("archived") is True or data.get("active") is False:
             return None
         last = _mapping(data.get("lastMessage"))
-        sender = _mapping(last.get("identity"))
+        deleted = last.get("deleted") is True
+        sender = {} if deleted else _mapping(last.get("identity"))
         return cls(
             room_id=room_id,
             room_type=_str(data, "type"),
@@ -291,7 +303,7 @@ class ParroChatRoom:
             unread_count=_int(data.get("unreadCount")) or 0,
             replies_enabled=data.get("repliesEnabled") is True,
             last_message_at=parse_datetime(last.get("createdAt")) or parse_datetime(data.get("sortDate")),
-            last_message="" if last.get("deleted") is True else _str(last, "text"),
+            last_message="" if deleted else _str(last, "text"),
             last_sender=full_name(sender),
             last_sender_id=_self_id(sender),
         )
@@ -319,10 +331,10 @@ class ParroChatRoom:
 
 @dataclass(frozen=True, slots=True)
 class ParroUnreadCounts:
-    announcements: int = 0
-    calendar_items: int = 0
-    chat_rooms: int = 0
-    news: int = 0
+    announcements: int | None = None
+    calendar_items: int | None = None
+    chat_rooms: int | None = None
+    news: int | None = None
 
     @classmethod
     def from_api(cls, rows: list[Mapping[str, Any]], guardian_id: int | None) -> ParroUnreadCounts:

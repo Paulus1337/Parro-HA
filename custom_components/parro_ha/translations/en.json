@@ -2,7 +2,8 @@
   "config": {
     "abort": {
       "already_configured": "This Parro account is already set up.",
-      "reauth_successful": "Signed in again successfully."
+      "reauth_successful": "Signed in again successfully.",
+      "reconfigure_successful": "The Home Assistant user of this Parro account is saved."
     },
     "error": {
       "account_locked": "Your Parro account is locked after too many wrong passwords. Reset your password on the Parro sign-in page or ask your school, then try again.",
@@ -42,6 +43,16 @@
         "description": "Your Parro session has ended. Sign in again with the e-mail address (or username) and password of your Parro account.\n\nParnasSys locks an account after a few wrong passwords. Home Assistant never retries a password on its own.",
         "title": "Sign in to Parro again"
       },
+      "reconfigure": {
+        "data": {
+          "user": "Home Assistant user"
+        },
+        "data_description": {
+          "user": "The Home Assistant user this Parro account belongs to. Only this user sees the conversations in the Parro card, and only this user and automations can reply from this account. Other users can read the announcements in the Parro card only when they are chosen in the options. Show announcement details and Show conversation details make these texts readable by every user."
+        },
+        "description": "Choose the Home Assistant user this Parro account belongs to. You do not have to sign in again.",
+        "title": "Change the Home Assistant user"
+      },
       "user": {
         "data": {
           "password": "Password",
@@ -50,7 +61,7 @@
         },
         "data_description": {
           "password": "Sent once to the official Parro sign-in page and never stored.",
-          "user": "The Home Assistant user this Parro account belongs to. The Parro card shows this account to that user, and replies by that user are sent from this account.",
+          "user": "The Home Assistant user this Parro account belongs to. The Parro card shows this account to that user, and replies by that user are sent from this account. You can change it later with Reconfigure.",
           "username": "The e-mail address or username you use to sign in to Parro."
         },
         "description": "Parro-HA is an unofficial open-source hobby project. It is not made, endorsed or supported by Parro or ParnasSys.\n\nSign in with the e-mail address (or username) and password of your Parro account. They are sent once, only to the official ParnasSys sign-in page, and are never stored. Home Assistant keeps a session that renews itself.\n\nParnasSys locks an account after a few wrong passwords. Home Assistant never retries a password on its own.",
@@ -131,6 +142,9 @@
     "conversation_not_available": {
       "message": "This conversation cannot get a reply. Only active one-to-one and family conversations with replies turned on can."
     },
+    "conversations_off": {
+      "message": "Parro-HA does not keep the conversations of this account. Turn on Conversations in the Parro card in the Parro options."
+    },
     "duplicate_message": {
       "message": "The same message was already sent, or perhaps sent, to this conversation in the last 6 hours."
     },
@@ -141,7 +155,7 @@
       "message": "The message is empty."
     },
     "message_link": {
-      "message": "Messages with links or e-mail addresses are not sent, for safety."
+      "message": "Messages with links, web addresses, IP addresses or e-mail addresses are not sent, for safety. Two words joined by a full stop, such as example.nl, count as a web address, and four numbers joined by full stops, such as 1.2.3.4, as an IP address."
     },
     "message_markup": {
       "message": "Only plain text is sent, without HTML, code, markdown links or template code. Leave out backticks, backslashes, square brackets, curly brackets, HTML tags and HTML codes, and put a space after an ampersand (&) or a less-than sign."
@@ -156,7 +170,7 @@
       "message": "The message has more than 20 lines."
     },
     "no_account": {
-      "message": "Could not find which Parro account should send the reply. Automations must choose the Parro account in the action."
+      "message": "Could not find your Parro account. Automations must choose the Parro account in the action."
     },
     "rate_limited": {
       "message": "Too many replies. Wait a minute between replies to the same conversation. At most 5 replies per hour and 20 per day are sent."
@@ -174,7 +188,16 @@
       "message": "Parro refused an earlier reply, so sending is paused for an hour."
     },
     "update_failed": {
-      "message": "Could not update Parro data: {error}"
+      "message": "Parro gave an unexpected answer, so the Parro data was not updated."
+    },
+    "update_unreachable": {
+      "message": "Could not reach Parro. The Parro data is updated again when Parro is back."
+    }
+  },
+  "issues": {
+    "details_public": {
+      "description": "Show announcement details or Show conversation details is on for {title}, so announcement texts or conversation details are in entity attributes that every Home Assistant user can read. Accounts added before version 0.4.0 keep announcement details on, so that their cards and automations keep working. Once those use the Parro card and the Get announcements and Get conversations actions, turn both options off in the Parro options.",
+      "title": "Parro texts are readable by every user"
     }
   },
   "options": {
@@ -182,23 +205,59 @@
       "init": {
         "data": {
           "announcement_count": "Announcements to keep",
+          "announcement_details": "Show announcement details",
+          "announcement_photos": "Photos with announcements",
+          "card_conversations": "Conversations in the Parro card",
           "chat_details": "Show conversation details",
+          "child_photos": "Profile photos of children",
+          "children": "Children",
           "photo_count": "Recent photos",
           "reply_conversations": "Conversations Home Assistant may reply to",
-          "update_interval": "Update interval"
+          "update_interval": "Update interval",
+          "viewers": "Other users who can read this account"
         },
         "data_description": {
-          "announcement_count": "Number of recent announcements shown in the attributes of the latest announcement sensor.",
-          "chat_details": "Adds names and the last message of each conversation to the unread conversations sensor, and the sender and message to chat message events. Off by default for privacy.",
-          "photo_count": "Number of image entities with the most recent photos from announcements. 0 (off) by default, because class photos usually show other people's children.",
+          "announcement_count": "Number of recent announcements in the Parro card, the pop-ups, the Get announcements action and the details of Latest announcement.",
+          "announcement_details": "Adds the title, text and author of the latest announcements to Latest announcement, the title of the last announcement to each Class sensor, the title and group to the recent photos, and the title, group and author to Announcement events. Every Home Assistant user can read these, also in the pop-ups of this account. On for accounts added before version 0.4.0, so their cards, pop-ups and automations keep working, and off for new accounts. The account's own user and the users chosen below read the announcements in the Parro card without it.",
+          "announcement_photos": "The Parro card and the pop-ups show up to 4 photos under each announcement, only to the users who may read this account. On for new accounts. Accounts added before version 0.4.0 start with it off, so their cards look as before.",
+          "card_conversations": "The Parro card and the pop-ups show the conversations of this account and the reply form to its own Home Assistant user. On for new accounts. Accounts added before version 0.4.0 start with the setting of Show conversation details, so their cards look as before. Without Show conversation details or a conversation Home Assistant may reply to, the Chat message event and the Get conversations action also need this option.",
+          "chat_details": "Adds the names and the last message of the 10 most recent conversations to Unread conversations, and the sender and message to Chat message events. Every Home Assistant user can read these, also in the pop-ups. Off by default for privacy.",
+          "child_photos": "An image entity with the profile photo of each child. Needs Children. Off by default, because every Home Assistant user can see image entities.",
+          "children": "A device for each child with its class and its own calendar. Off by default, because device names contain your children's first names, which every Home Assistant user can see.",
+          "photo_count": "Number of image entities with the most recent photos from announcements. 0 (off) by default, because class photos usually show other people's children and every Home Assistant user can see image entities. The Parro card shows them in a Recent photos block.",
           "reply_conversations": "One-to-one and family conversations that the Parro Send chat reply action may reply to, in plain text. None by default, which turns replies off. Only automations and the Home Assistant user of this account can send.",
-          "update_interval": "How often Parro is checked for new information."
+          "update_interval": "How often Parro is checked for new information.",
+          "viewers": "Besides the Home Assistant user of this account, these users can read its announcements and photos in the Parro card and the pop-ups. Conversations and replies stay with the account's own user."
         },
         "title": "Parro options"
       }
     }
   },
   "services": {
+    "get_announcements": {
+      "description": "Returns the recent announcements of a Parro account from what Home Assistant already has, without asking Parro. For notifications and other automations. The answer is kept in the trace of the automation or script.",
+      "fields": {
+        "config_entry_id": {
+          "description": "The Parro account to read. Leave it empty to use your own Parro account. Automations must choose one.",
+          "name": "Parro account"
+        },
+        "count": {
+          "description": "How many of the newest announcements to return, at most the number set in the options. Empty returns that number.",
+          "name": "Number"
+        }
+      },
+      "name": "Get announcements"
+    },
+    "get_conversations": {
+      "description": "Returns the conversations of a Parro account with their latest message, from what Home Assistant already has, without opening them in Parro. Only the user of the account and automations can use it. The answer is kept in the trace of the automation or script.",
+      "fields": {
+        "config_entry_id": {
+          "description": "The Parro account to read. Leave it empty to use your own Parro account. Automations must choose one.",
+          "name": "Parro account"
+        }
+      },
+      "name": "Get conversations"
+    },
     "send_message": {
       "description": "Sends a plain-text reply to a Parro conversation that is allowed in the options. At most one reply per conversation per minute, 5 per hour and 20 per day.",
       "fields": {
@@ -207,11 +266,11 @@
           "name": "Parro account"
         },
         "conversation_id": {
-          "description": "The id of the conversation, from the conversations attribute of the unread conversations sensor or from the chat message event.",
+          "description": "The id of the conversation, from the Get conversations action or from the chat message event.",
           "name": "Conversation"
         },
         "message": {
-          "description": "Plain text of up to 1000 characters and 20 lines. Links, e-mail addresses, HTML, markdown links and template code are refused.",
+          "description": "Plain text of up to 1000 characters and 20 lines. Links, web addresses, IP addresses, e-mail addresses, HTML, markdown links and template code are refused.",
           "name": "Message"
         }
       },

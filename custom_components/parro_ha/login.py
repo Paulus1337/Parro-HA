@@ -39,10 +39,11 @@ _TAGS = re.compile(r"<[^>]+>")
 
 
 class ParroLoginError(ParroError):
-    def __init__(self, reason: str, attempts_left: int | None = None) -> None:
+    def __init__(self, reason: str, attempts_left: int | None = None, check: str | None = None) -> None:
         super().__init__(reason)
         self.reason = reason
         self.attempts_left = attempts_left
+        self.check = check
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -169,7 +170,7 @@ def _rejection(html: str) -> ParroLoginError:
     if not message:
         return ParroLoginError("sign_in_uncertain")
     if _REQUIRED.search(message):
-        return ParroLoginError("login_changed")
+        return ParroLoginError("login_changed", check="required")
     if attempts == 0 or (attempts is None and _LOCKED.search(message)):
         return ParroLoginError("account_locked")
     return ParroLoginError("invalid_auth" if attempts is None else "invalid_auth_attempts", attempts)
@@ -198,7 +199,7 @@ class ParroLogin:
         page = await self._async_redirects(await self._async_fetch(self._request.url))
         form = _login_form(page) if page.status == 200 and page.location is None else None
         if form is None:
-            raise ParroLoginError("login_changed")
+            raise ParroLoginError("login_changed", check="no_form")
         data = {**form.hidden, form.username_field: username, form.password_field: password, "aanmelden": "x"}
         try:
             page = await self._async_redirects(await self._async_fetch(form.action, data=data))
@@ -239,38 +240,42 @@ class ParroLogin:
         if page.location is not None:
             return await self._async_exchange(page.location)
         if page.status != 200:
-            raise ParroLoginError("login_changed")
+            raise ParroLoginError("login_changed", check="status")
         if accounts := _accounts(page):
             labels = [account.label for account in accounts]
             urls_valid = all(_on_sign_in_host(account.url) for account in accounts)
             if not all(labels) or len(set(labels)) != len(labels) or not urls_valid:
-                raise ParroLoginError("login_changed")
+                raise ParroLoginError("login_changed", check="chooser")
             base = _AJAX_BASE.search(page.html)
             self._accounts = accounts
             self._ajax_base = base.group(1) if base else urlsplit(page.url).path
             return labels
         if _login_form(page) is not None:
             raise _rejection(page.html)
-        raise ParroLoginError("two_factor" if _asks_one_time_code(page.html) else "login_changed")
+        if _asks_one_time_code(page.html):
+            raise ParroLoginError("two_factor")
+        raise ParroLoginError("login_changed", check="other_page")
 
     async def _async_exchange(self, location: str) -> TokenSet:
         params = _callback(location)
         state, code, issuer = (params.get(key, []) for key in ("state", "code", "iss"))
         state_valid = len(state) == 1 and secrets.compare_digest(state[0].encode(), self._request.state.encode())
         if not state_valid or len(issuer) > 1 or not all(map(_on_sign_in_host, issuer)):
-            raise ParroLoginError("login_changed")
+            raise ParroLoginError("login_changed", check="callback")
         if "error" in params:
             raise ParroLoginError("account_rejected")
         if len(code) != 1 or not code[0]:
-            raise ParroLoginError("login_changed")
+            raise ParroLoginError("login_changed", check="no_code")
         return await ParroAuth(self._session).async_exchange_code(code[0], self._request.code_verifier)
 
     async def _async_fetch(
         self, url: str, *, data: dict[str, str] | None = None, headers: dict[str, str] | None = None
     ) -> _Page:
         self._requests += 1
-        if self._requests > MAX_REQUESTS or not _on_sign_in_host(url):
-            raise ParroLoginError("login_changed")
+        if self._requests > MAX_REQUESTS:
+            raise ParroLoginError("login_changed", check="max_requests")
+        if not _on_sign_in_host(url):
+            raise ParroLoginError("login_changed", check="off_host")
         try:
             async with self._session.request(
                 "GET" if data is None else "POST",
