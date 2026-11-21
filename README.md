@@ -139,7 +139,7 @@ The pop-up shows what Home Assistant already has: it asks the Parro service noth
 
 ## Example dashboard
 
-Want a head start? [`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the child's photo, class and calendar, the coming activities, the Parro card with the announcements and photos, the school calendar and the Parro card with the conversations. The screenshots show made-up data.
+Want a head start? [`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the Parro card with the 3 newest announcements and their photos, the child's photo, class and calendar, the Parro card with the conversations, the coming activities and the school calendar. For all recent announcements, tap **Unread announcements** at the top of the card, or change `announcement_count`. The screenshots show made-up data.
 
 ![The example dashboard on a laptop](examples/dashboard-laptop.png)
 
@@ -147,7 +147,7 @@ Want a head start? [`examples/dashboard.yaml`](examples/dashboard.yaml) is a com
 
 1. In the Parro [options](#options), turn on **Children** and **Profile photos of children** for the child section, or leave that section out.
 2. Go to **Settings > Dashboards > Add dashboard > New dashboard from scratch** and open the dashboard. Select **Edit dashboard** (the pencil at the top, or in the three-dot menu on a narrow screen), then open the three-dot menu and select **Raw configuration editor**. Replace the text with the content of the file.
-3. Replace `alex` in the entity IDs with the start of your child's entity IDs, and `Alex` with your child's name. For more children, copy the child section. With Home Assistant in Dutch, use the Dutch entity IDs from [Entities](#entities). Then save.
+3. Replace `alex` in the entity IDs with the start of your child's entity IDs, and `Alex` with your child's name. For more children, copy the child section; with two children, also remove `column_span: 2` from the school calendar, so that it does not move to a row of its own. With Home Assistant in Dutch, use the Dutch entity IDs from [Entities](#entities). Then save.
 
 The Parro cards in the example show every viewer their own account. The other cards name the entities of one account, which every user who opens the dashboard sees; see [Several parents](#several-parents).
 

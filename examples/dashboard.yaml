@@ -49,6 +49,18 @@ views:
       - type: grid
         cards:
           - type: heading
+            heading: Announcements
+            icon: mdi:bullhorn
+            heading_style: title
+          - type: custom:parro-ha-card
+            announcement_count: 3
+            show_children: false
+            show_conversations: false
+            show_reply: false
+            show_calendar: false
+      - type: grid
+        cards:
+          - type: heading
             heading: Alex
             icon: mdi:account-school
             heading_style: title
@@ -98,6 +110,17 @@ views:
       - type: grid
         cards:
           - type: heading
+            heading: Conversations
+            icon: mdi:forum
+            heading_style: title
+          - type: custom:parro-ha-card
+            show_announcements: false
+            show_children: false
+            show_photos: false
+            show_calendar: false
+      - type: grid
+        cards:
+          - type: heading
             heading: Coming up
             icon: mdi:calendar-clock
             heading_style: title
@@ -123,17 +146,7 @@ views:
               {{ 'Nothing planned.' if events is not none else 'Parro is not available.' }}
               {%- endfor %}
       - type: grid
-        cards:
-          - type: heading
-            heading: Announcements
-            icon: mdi:bullhorn
-            heading_style: title
-          - type: custom:parro-ha-card
-            show_children: false
-            show_conversations: false
-            show_reply: false
-            show_calendar: false
-      - type: grid
+        column_span: 2
         cards:
           - type: heading
             heading: School calendar
@@ -144,16 +157,5 @@ views:
               - calendar.parro_school_calendar
             initial_view: dayGridMonth
             grid_options:
-              columns: 12
+              columns: full
               rows: 10
-      - type: grid
-        cards:
-          - type: heading
-            heading: Conversations
-            icon: mdi:forum
-            heading_style: title
-          - type: custom:parro-ha-card
-            show_announcements: false
-            show_children: false
-            show_photos: false
-            show_calendar: false
