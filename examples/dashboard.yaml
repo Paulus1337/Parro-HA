@@ -49,18 +49,6 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: Announcements
-            icon: mdi:bullhorn
-            heading_style: title
-          - type: custom:parro-ha-card
-            announcement_count: 3
-            show_children: false
-            show_conversations: false
-            show_reply: false
-            show_calendar: false
-      - type: grid
-        cards:
-          - type: heading
             heading: Alex
             icon: mdi:account-school
             heading_style: title
@@ -107,6 +95,18 @@ views:
             grid_options:
               columns: 12
               rows: 9
+      - type: grid
+        cards:
+          - type: heading
+            heading: Announcements
+            icon: mdi:bullhorn
+            heading_style: title
+          - type: custom:parro-ha-card
+            announcement_count: 3
+            show_children: false
+            show_conversations: false
+            show_reply: false
+            show_calendar: false
       - type: grid
         cards:
           - type: heading

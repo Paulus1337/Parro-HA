@@ -139,7 +139,7 @@ The pop-up shows what Home Assistant already has: it asks the Parro service noth
 
 ## Example dashboard
 
-Want a head start? [`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the Parro card with the 3 newest announcements and their photos, the child's photo, class and calendar, the Parro card with the conversations, the coming activities and the school calendar. For all recent announcements, tap **Unread announcements** at the top of the card, or change `announcement_count`. The screenshots show made-up data.
+Want a head start? [`examples/dashboard.yaml`](examples/dashboard.yaml) is a complete School dashboard: a greeting with the next school activity, badges for unread announcements, unread conversations and the next activity, the child's photo, class and calendar, the Parro card with the 3 newest announcements and their photos, the Parro card with the conversations, the coming activities and the school calendar. For all recent announcements, tap **Unread announcements** at the top of the card, or change `announcement_count`. The screenshots show made-up data.
 
 ![The example dashboard on a laptop](examples/dashboard-laptop.png)
 
