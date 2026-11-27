@@ -21,9 +21,25 @@ h3 { margin: 0; font: inherit; }
   display: grid; place-items: center; aspect-ratio: 4 / 3; padding: 0; border-radius: 8px; overflow: hidden;
   background: var(--secondary-background-color); color: var(--secondary-text-color); text-align: center;
 }
+.photo > * { grid-area: 1 / 1; }
 .photo img { width: 100%; height: 100%; object-fit: cover; }
-.photo[aria-expanded="true"] { grid-column: 1 / -1; aspect-ratio: auto; }
-.photo[aria-expanded="true"] img { height: auto; max-height: 80vh; object-fit: contain; }
+.more {
+  place-self: stretch; display: grid; place-items: center; background: rgba(0, 0, 0, 0.5); color: #fff; font-size: 24px;
+}
+dialog {
+  width: 100%; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+  background: #000; color: #fff; touch-action: none; -webkit-user-select: none; user-select: none;
+}
+dialog[open] { display: grid; grid-template: minmax(0, 1fr) auto / minmax(0, 1fr); place-items: center; }
+dialog::backdrop { background: #000; }
+dialog:focus-visible { outline-offset: -2px; }
+dialog img { max-width: 100%; max-height: 100%; object-fit: contain; }
+dialog p { place-self: stretch; display: grid; place-items: center; margin: 0; text-align: center; }
+.bar {
+  grid-row: 2; justify-self: stretch; display: grid; grid-template-columns: 1fr auto auto auto 1fr; gap: 8px;
+  place-items: center start; padding: 8px 8px calc(8px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
+}
+.bar button { min-width: 44px; padding: 0; background: none; color: inherit; }
 .form { display: grid; gap: 12px; padding: 0 16px 16px; }
 label { display: grid; gap: 4px; color: var(--secondary-text-color); }
 select, textarea {
@@ -59,6 +75,9 @@ const TEXTS = {
     onePhoto: "1 photo",
     photoCount: "{count} photos",
     noPhoto: "Photo not available",
+    previous: "Previous photo",
+    next: "Next photo",
+    close: "Close",
     unread: "unread",
     more: "Show more",
     less: "Show less",
@@ -105,6 +124,9 @@ const TEXTS = {
     onePhoto: "1 foto",
     photoCount: "{count} foto's",
     noPhoto: "Foto niet beschikbaar",
+    previous: "Vorige foto",
+    next: "Volgende foto",
+    close: "Sluiten",
     unread: "ongelezen",
     more: "Meer tonen",
     less: "Minder tonen",
@@ -142,9 +164,12 @@ const TEXTS = {
   },
 };
 
-const el = (tag, { role, ...props } = {}, ...children) => {
-  const node = Object.assign(document.createElement(tag), props);
-  if (role) node.setAttribute("role", role);
+const el = (tag, props = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === "role" || key.startsWith("aria-")) node.setAttribute(key, value);
+    else node[key] = value;
+  }
   node.append(...children.filter(Boolean));
   return node;
 };
@@ -158,6 +183,8 @@ const PARTS = ["announcements", "children", "photos", "conversations", "reply", 
 const DEFAULTS = Object.fromEntries(PARTS.map((part) => [part, true]));
 const PREVIEW = 280;
 const PHOTOS = 4;
+const GESTURES = "pointerdown pointermove pointerup pointercancel touchstart touchmove touchend touchcancel wheel";
+const SCROLLS = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"];
 const DAY = { weekday: "short", day: "numeric", month: "short" };
 const TIME = { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
 const hourCycle = (hass) => {
@@ -504,13 +531,15 @@ class ParroCard extends HTMLElement {
     const none = el("div", { className: "item", role: "listitem", textContent: empty });
     list.replaceChildren(...(nodes.length ? nodes : [none]));
     used.get(focused)?.focus({ preventScroll: true });
+    this._tiles = used;
+    if (this._dialog?.open && used.get(this._opener)?.total !== this._total) this._dialog.close();
     this._revoke(used);
   }
 
-  _revoke(used) {
-    for (const [key, photo] of this._photos) {
+  _revoke(used, photos = this._photos) {
+    for (const [key, photo] of photos) {
       if (used.has(key)) continue;
-      this._photos.delete(key);
+      photos.delete(key);
       photo.then((url) => url && URL.revokeObjectURL(url));
     }
   }
@@ -519,6 +548,7 @@ class ParroCard extends HTMLElement {
     this._observer?.disconnect();
     this._pending.clear();
     this._revoke(new Set());
+    if (this._dialog?.open) this._dialog.close();
   }
 
   _announcement(item, entry, t, used, photos) {
@@ -526,12 +556,17 @@ class ParroCard extends HTMLElement {
     const count = photos || total < 1 ? "" : total === 1 ? t.onePhoto : fill(t.photoCount, { count: total });
     const meta = [strings(item.groups).join(", "), item.author, format(this._hass, item.published, TIME), count];
     const extra = item.read === false ? ` (${t.new})` : "";
-    const node = this._item(item.title || t.announcement, extra, meta, item.text, `a${item.id}`, t);
+    const title = item.title || t.announcement;
+    const node = this._item(title, extra, meta, item.text, `a${item.id}`, t);
     if (photos && total > 0 && /^[A-Za-z0-9]+$/.test(entry) && Number.isInteger(item.id)) {
-      const photos = Array.from({ length: Math.min(total, PHOTOS) }, (_, index) =>
-        this._image(`${entry}/${item.id}/${index}`, fill(t.photo, { number: index + 1, total }), t, used),
-      );
-      node.append(el("div", { className: "photos" }, ...photos));
+      const path = `${entry}/${item.id}`;
+      const tiles = Array.from({ length: Math.min(total, PHOTOS) }, (_, index) => {
+        const tile = this._image(`${path}/${index}`, fill(t.photo, { number: index + 1, total }), t, used);
+        return Object.assign(tile, { total, onclick: () => this._slideshow(path, index, total, title) });
+      });
+      const more = total > PHOTOS && `+${total - PHOTOS}`;
+      if (more) tiles[PHOTOS - 1].append(el("span", { className: "more", "aria-hidden": "true", textContent: more }));
+      node.append(el("div", { className: "photos" }, ...tiles));
     }
     return node;
   }
@@ -563,8 +598,8 @@ class ParroCard extends HTMLElement {
     return node;
   }
 
-  _load(path, show) {
-    let photo = this._photos.get(path);
+  _load(path, photos = this._photos) {
+    let photo = photos.get(path);
     if (!photo) {
       photo = this._hass
         .fetchWithAuth(`/api/parro_ha/photo/${path}`)
@@ -573,31 +608,26 @@ class ParroCard extends HTMLElement {
           return blob && /^image\//.test(blob.type) && blob.size < 8000000 ? URL.createObjectURL(blob) : null;
         })
         .catch(() => null);
-      this._photos.set(path, photo);
+      photos.set(path, photo);
     }
     return photo.then((url) => {
-      const current = this._photos.get(path) === photo;
-      if (!url && current) this._photos.delete(path);
-      show(current && url);
+      const current = photos.get(path) === photo;
+      if (!url && current) photos.delete(path);
+      return current && url;
     });
   }
 
   _image(key, alt, t, used) {
     const image = el("img", { alt });
     const tile = el("button", { className: "photo", key }, image);
-    const note = el("div", { className: "photo", textContent: t.noPhoto });
-    let full = null;
-    const toggle = (open) => {
-      tile.setAttribute("aria-expanded", String(open));
-      this._open[open ? "add" : "delete"](key);
-      if (open && !full) full = this._load(`${key}?size=full`, (url) => url && (image.src = url));
+    const show = (url) => {
+      if (url) image.src = url;
+      else {
+        tile.setAttribute("aria-label", `${alt}, ${t.noPhoto}`);
+        image.replaceWith(el("span", { textContent: t.noPhoto }));
+      }
     };
-    tile.onclick = () => toggle(!this._open.has(key));
-    toggle(this._open.has(key));
     used.set(key, tile);
-    if (full) used.set(`${key}?size=full`, tile);
-    const show = (url) => image.src || (url ? (image.src = url) : tile.replaceWith(note));
-    const load = () => this._load(key, (url) => (url || !full ? show(url) : full.then(() => show())));
     this._observer ||= new IntersectionObserver((entries) => {
       for (const entry of entries) {
         const start = entry.isIntersecting && this._pending.get(entry.target);
@@ -607,9 +637,73 @@ class ParroCard extends HTMLElement {
         start();
       }
     });
-    this._pending.set(image, load);
+    this._pending.set(image, () => this._load(key).then(show));
     this._observer.observe(image);
     return tile;
+  }
+
+  _slideshow(path, start, total, title) {
+    if (!this._dialog) this.shadowRoot.append((this._dialog = el("dialog", { tabIndex: -1 })));
+    const dialog = this._dialog;
+    if (!dialog.showModal) return;
+    const t = texts(this._hass);
+    const photos = new Map();
+    const load = (number) => this._load(`${path}/${number}?size=full`, photos);
+    const opener = `${path}/${start}`;
+    const image = el("img", { draggable: false });
+    const note = el("p", { role: "status" });
+    const counter = el("span", { "aria-live": "polite" });
+    const button = (icon, label, onclick) => el("button", { "aria-label": label, onclick }, el("ha-icon", { icon }));
+    const close = button("mdi:close", t.close, () => dialog.close());
+    const previous = button("mdi:chevron-left", t.previous, () => go(index - 1));
+    const next = button("mdi:chevron-right", t.next, () => go(index + 1));
+    let index, down, up, x, y;
+    const go = (number) => {
+      if (number < 0 || number >= total) return;
+      const focused = this.shadowRoot.activeElement;
+      index = number;
+      counter.textContent = image.alt = fill(t.photo, { number: number + 1, total });
+      previous.disabled = number === 0;
+      next.disabled = number === total - 1;
+      if (focused?.disabled) dialog.focus();
+      [image.hidden, note.hidden, note.textContent] = [true, false, ""];
+      load(number).then((url) => {
+        if (number !== index) return;
+        [image.hidden, note.hidden, note.textContent] = [!url, Boolean(url), url ? "" : t.noPhoto];
+        if (!url) return;
+        image.src = url;
+        if (number + 1 < total) load(number + 1);
+      });
+    };
+    image.onpointerup = note.onpointerup = (event) => {
+      const [dx, dy] = [Math.abs(event.clientX - x), Math.abs(event.clientY - y)];
+      if (event.isPrimary && event.target === down && dx >= 40 && dx > dy) go(index + Math.sign(x - event.clientX));
+    };
+    const stop = (event) => {
+      event.stopPropagation();
+      if (event.type === "wheel") event.preventDefault();
+      if (event.type === "pointerdown") [down, x, y] = [event.isPrimary && event.target, event.clientX, event.clientY];
+      if (event.type === "pointerup") up = event.target;
+    };
+    for (const type of GESTURES.split(" ")) dialog[`on${type}`] = stop;
+    dialog.setAttribute("aria-label", title);
+    dialog.replaceChildren(image, note, el("div", { className: "bar" }, close, previous, counter, next));
+    dialog.onclick = (event) => {
+      if (event.target === dialog && down === dialog && up === dialog && event.detail === 1) dialog.close();
+    };
+    dialog.onkeydown = (event) => {
+      event.stopPropagation();
+      const step = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
+      if (step) go(index + step);
+      if (SCROLLS.includes(event.key) || (event.key === " " && event.target === dialog)) event.preventDefault();
+    };
+    dialog.onclose = () => {
+      this._revoke(new Set(), photos);
+      this._tiles.get(opener)?.focus({ preventScroll: true });
+    };
+    [this._opener, this._total] = [opener, total];
+    go(start);
+    dialog.showModal();
   }
 
   _fillConversations(data, t) {

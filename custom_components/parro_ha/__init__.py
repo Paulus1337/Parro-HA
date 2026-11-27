@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import config_validation as cv, device_registry as dr, issue_registry as ir
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
@@ -34,9 +34,9 @@ from .const import (
     SERVICE_SEND_MESSAGE,
     SIGNAL_UPDATE,
 )
-from .content import async_service_entry, async_setup_content, owns
+from .content import async_issues, async_service_entry, async_setup_content, owns
 from .coordinator import ParroConfigEntry, ParroDataUpdateCoordinator, device_keys
-from .media import photo_cache
+from .media import PhotoArchive, photo_cache
 
 PLATFORMS = [Platform.CALENDAR, Platform.EVENT, Platform.IMAGE, Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -96,8 +96,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> bo
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ParroConfigEntry) -> None:
-    ir.async_delete_issue(hass, DOMAIN, f"details_{entry.entry_id}")
+    async_issues(hass, entry, removed=True)
     await async_remove_guard(hass, entry.entry_id)
+    await PhotoArchive(hass, entry).async_remove()
     with suppress(ParroError):
         await ParroAuth(async_get_clientsession(hass)).async_revoke(TokenSet.from_dict(entry.data.get(CONF_TOKEN)))
 

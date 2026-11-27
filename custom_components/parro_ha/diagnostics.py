@@ -50,6 +50,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ParroCo
             "children": options.children,
             "child_photos": options.child_photos,
             "announcement_photos": options.announcement_photos,
+            "save_photos": options.save_photos,
             "card_conversations": options.card_conversations,
             "announcement_details": options.announcement_details,
             "chat_details": options.chat_details,

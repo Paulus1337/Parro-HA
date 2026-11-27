@@ -198,6 +198,10 @@
     "details_public": {
       "description": "Berichtdetails tonen of Gespreksdetails tonen staat aan voor {title}, dus berichtteksten of gespreksdetails staan in entiteitsattributen die elke Home Assistant-gebruiker kan lezen. Accounts die voor versie 0.4.0 zijn toegevoegd houden berichtdetails aan, zodat hun kaarten en automatiseringen blijven werken. Zet beide opties uit in de Parro-opties zodra die de Parro-kaart en de acties Berichten ophalen en Gesprekken ophalen gebruiken.",
       "title": "Parro-teksten zijn voor elke gebruiker leesbaar"
+    },
+    "photos_public": {
+      "description": "Foto's opslaan in Media staat aan voor {title}, dus de foto's van de berichten worden opgeslagen in de lokale mediamap van Home Assistant, per datum en met het Parro-nummer van het bericht in de naam, met een langste zijde van maximaal 1600 pixels en zonder metadata. Elke Home Assistant-gebruiker kan ze in Media bekijken en openen via Media-links die een tijdje werken zonder dat je je hoeft aan te melden. Ook apps en add-ons die de mediamap kunnen lezen, zoals een Samba-share, een mediaserver of een NAS die de map deelt, kunnen ze zien. Back-ups waarin de mediamap zit, bevatten ze ook. Klassenfoto's laten meestal ook andermans kinderen zien. Bij Home Assistant Container moet je eerst een map aan /media koppelen. Zet Foto's opslaan in Media uit in de Parro-opties om te stoppen met opslaan. De opgeslagen foto's blijven dan bewaard, en een foto die je verwijdert, wordt niet opnieuw opgeslagen.",
+      "title": "Opgeslagen Parro-foto's zijn voor elke gebruiker zichtbaar"
     }
   },
   "options": {
@@ -213,19 +217,21 @@
           "children": "Kinderen",
           "photo_count": "Recente foto's",
           "reply_conversations": "Gesprekken waarop Home Assistant mag antwoorden",
+          "save_photos": "Foto's opslaan in Media",
           "update_interval": "Update-interval",
           "viewers": "Andere gebruikers die dit account mogen lezen"
         },
         "data_description": {
           "announcement_count": "Aantal recente berichten in de Parro-kaart, de pop-ups, de actie Berichten ophalen en de details van Laatste bericht.",
           "announcement_details": "Voegt de titel, tekst en auteur van de laatste berichten toe aan Laatste bericht, de titel van het laatste bericht aan elke sensor Groep, de titel en groep aan de recente foto's, en de titel, groep en auteur aan Bericht-events. Elke Home Assistant-gebruiker kan deze lezen, ook in de pop-ups van dit account. Aan voor accounts die voor versie 0.4.0 zijn toegevoegd, zodat hun kaarten, pop-ups en automatiseringen blijven werken, en uit voor nieuwe accounts. De eigen gebruiker van het account en de hieronder gekozen gebruikers lezen de berichten ook zonder deze optie in de Parro-kaart.",
-          "announcement_photos": "De Parro-kaart en de pop-ups tonen tot 4 foto's onder elk bericht, alleen aan de gebruikers die dit account mogen lezen. Aan voor nieuwe accounts. Accounts die voor versie 0.4.0 zijn toegevoegd beginnen met deze optie uit, zodat hun kaarten er hetzelfde uitzien.",
+          "announcement_photos": "De Parro-kaart en de pop-ups tonen tot 4 foto's onder elk bericht, en alle foto's van het bericht in een diavoorstelling als je op een foto tikt, alleen aan de gebruikers die dit account mogen lezen. Aan voor nieuwe accounts. Accounts die voor versie 0.4.0 zijn toegevoegd beginnen met deze optie uit, zodat hun kaarten er hetzelfde uitzien.",
           "card_conversations": "De Parro-kaart en de pop-ups tonen de gesprekken van dit account en het antwoordformulier aan de eigen Home Assistant-gebruiker. Aan voor nieuwe accounts. Accounts die voor versie 0.4.0 zijn toegevoegd beginnen met de instelling van Gespreksdetails tonen, zodat hun kaarten er hetzelfde uitzien. Zonder Gespreksdetails tonen of een gesprek waarop Home Assistant mag antwoorden, hebben het Chatbericht-event en de actie Gesprekken ophalen deze optie ook nodig.",
           "chat_details": "Voegt de namen en het laatste bericht van de 10 meest recente gesprekken toe aan Ongelezen gesprekken, en de afzender en het bericht aan Chatbericht-events. Elke Home Assistant-gebruiker kan deze lezen, ook in de pop-ups. Standaard uit voor privacy.",
           "child_photos": "Een afbeeldingsentiteit met de profielfoto van elk kind. Werkt alleen met Kinderen. Standaard uit, omdat elke Home Assistant-gebruiker afbeeldingsentiteiten kan zien.",
           "children": "Een apparaat per kind met de groep en een eigen agenda. Standaard uit, omdat apparaatnamen de voornamen van je kinderen bevatten, die elke Home Assistant-gebruiker kan zien.",
           "photo_count": "Aantal afbeeldingsentiteiten met de meest recente foto's uit berichten. Standaard 0 (uit), omdat klassenfoto's meestal ook andermans kinderen laten zien en elke Home Assistant-gebruiker afbeeldingsentiteiten kan zien. De Parro-kaart toont ze in een blok Recente foto's.",
           "reply_conversations": "Een-op-een- en gezinsgesprekken waarop de Parro-actie Chatantwoord versturen mag antwoorden, in platte tekst. Standaard geen, dus antwoorden staat uit. Alleen automatiseringen en de Home Assistant-gebruiker van dit account kunnen versturen.",
+          "save_photos": "Slaat de foto's van de berichten van dit account op in een map Parro in de lokale mediamap van Home Assistant, per datum en met het Parro-nummer van het bericht in de naam, met een langste zijde van maximaal 1600 pixels en zonder metadata. Elke Home Assistant-gebruiker kan ze in Media bekijken en openen via Media-links die een tijdje werken zonder dat je je hoeft aan te melden. Ook apps en add-ons die de mediamap kunnen lezen, zoals een Samba-share, een mediaserver of een NAS die de map deelt, kunnen ze zien. Back-ups waarin de mediamap zit, bevatten ze ook. Klassenfoto's laten meestal ook andermans kinderen zien. Bij Home Assistant Container moet je eerst een map aan /media koppelen. Standaard uit. Zet je deze optie uit, dan blijven de opgeslagen foto's bewaard, en een foto die je verwijdert, wordt niet opnieuw opgeslagen.",
           "update_interval": "Hoe vaak Parro wordt gecontroleerd op nieuwe informatie.",
           "viewers": "Naast de Home Assistant-gebruiker van dit account kunnen deze gebruikers de berichten en foto's lezen in de Parro-kaart en de pop-ups. Gesprekken en antwoorden blijven bij de eigen gebruiker van het account."
         },

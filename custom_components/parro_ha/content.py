@@ -55,20 +55,25 @@ def _options(entry: ParroConfigEntry) -> ParroOptions:
 
 
 @callback
-def async_details_issue(hass: HomeAssistant, entry: ParroConfigEntry) -> None:
-    if (options := _options(entry)).announcement_details or options.chat_details:
-        ir.async_create_issue(
-            hass,
-            DOMAIN,
-            f"details_{entry.entry_id}",
-            is_fixable=False,
-            learn_more_url=f"{DOCUMENTATION}#options",
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="details_public",
-            translation_placeholders={"title": entry.title},
-        )
-    else:
-        ir.async_delete_issue(hass, DOMAIN, f"details_{entry.entry_id}")
+def async_issues(hass: HomeAssistant, entry: ParroConfigEntry, *, removed: bool = False) -> None:
+    options = _options(entry)
+    for issue_id, key, shown in (
+        (f"details_{entry.entry_id}", "details_public", options.announcement_details or options.chat_details),
+        (f"photos_public_{entry.entry_id}", "photos_public", options.save_photos),
+    ):
+        if shown and not removed:
+            ir.async_create_issue(
+                hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                learn_more_url=f"{DOCUMENTATION}#options",
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=key,
+                translation_placeholders={"title": entry.title},
+            )
+        else:
+            ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
 def _entry(hass: HomeAssistant, entry_id: str) -> ParroConfigEntry | None:
@@ -277,7 +282,7 @@ def async_setup_content(hass: HomeAssistant) -> None:
     def async_entry_changed(change: ConfigEntryChange, entry: ConfigEntry) -> None:
         if entry.domain == DOMAIN:
             if change is ConfigEntryChange.UPDATED:
-                async_details_issue(hass, entry)
+                async_issues(hass, entry)
             update()
 
     @callback

@@ -31,6 +31,7 @@ from .const import (
     CONF_CHILD_PHOTOS,
     CONF_CHILDREN,
     CONF_REPLY_CONVERSATIONS,
+    CONF_SAVE_PHOTOS,
     CONF_TOKEN,
     CONF_VIEWERS,
     DOMAIN,
@@ -42,7 +43,7 @@ from .const import (
     UPCOMING_EVENT_ROWS,
     UPDATE_INTERVAL,
 )
-from .media import photo_cache
+from .media import PhotoArchive, photo_cache
 from .models import (
     ParroAccount,
     ParroAnnouncement,
@@ -96,6 +97,7 @@ class ParroOptions:
     children: bool
     child_photos: bool
     announcement_photos: bool
+    save_photos: bool
     card_conversations: bool
     announcement_details: bool
     chat_details: bool
@@ -112,6 +114,7 @@ class ParroOptions:
             children=children,
             child_photos=children and options.get(CONF_CHILD_PHOTOS) is True,
             announcement_photos=options.get(CONF_ANNOUNCEMENT_PHOTOS, True) is True,
+            save_photos=options.get(CONF_SAVE_PHOTOS) is True,
             card_conversations=options.get(CONF_CARD_CONVERSATIONS, True) is True,
             announcement_details=options.get(CONF_ANNOUNCEMENT_DETAILS) is True,
             chat_details=options.get(CONF_CHAT_DETAILS) is True,
@@ -152,6 +155,7 @@ class ParroDataUpdateCoordinator(TimestampDataUpdateCoordinator[ParroData]):
 
     def __init__(self, hass: HomeAssistant, entry: ParroConfigEntry) -> None:
         self.options = ParroOptions.from_mapping(entry.options)
+        self.archive = PhotoArchive(hass, entry)
         super().__init__(
             hass,
             LOGGER,
@@ -172,6 +176,10 @@ class ParroDataUpdateCoordinator(TimestampDataUpdateCoordinator[ParroData]):
     async def async_stop(self, _: Event) -> None:
         await self.async_shutdown()
         await self.client.async_close()
+
+    async def async_shutdown(self) -> None:
+        await super().async_shutdown()
+        await self.archive.async_stop()
 
     @callback
     def _async_store_tokens(self, tokens: TokenSet) -> None:
@@ -205,6 +213,8 @@ class ParroDataUpdateCoordinator(TimestampDataUpdateCoordinator[ParroData]):
             key = "update_unreachable" if isinstance(err, ParroConnectionError) else "update_failed"
             raise UpdateFailed(translation_domain=DOMAIN, translation_key=key) from err
         self._async_remove_stale_devices(data.children)
+        if self.options.save_photos:
+            self.archive.async_start(data.announcements)
         return data
 
     async def _async_fetch(self) -> ParroData:

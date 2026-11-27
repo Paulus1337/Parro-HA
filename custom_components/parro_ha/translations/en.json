@@ -198,6 +198,10 @@
     "details_public": {
       "description": "Show announcement details or Show conversation details is on for {title}, so announcement texts or conversation details are in entity attributes that every Home Assistant user can read. Accounts added before version 0.4.0 keep announcement details on, so that their cards and automations keep working. Once those use the Parro card and the Get announcements and Get conversations actions, turn both options off in the Parro options.",
       "title": "Parro texts are readable by every user"
+    },
+    "photos_public": {
+      "description": "Save photos in Media is on for {title}, so the photos of its announcements are saved in the local media folder of Home Assistant, by date and named after the Parro number of the announcement, at most 1600 pixels on the longest side and without metadata. Every Home Assistant user can browse them in Media and open them through Media links that work for a while without signing in. Apps and add-ons that can read the media folder, such as a Samba share, a media server or a NAS that shares the folder, can see them too. Backups that include the media folder contain them. Class photos usually show other people's children too. On Home Assistant Container, a folder must be mapped to /media first. To stop saving, turn Save photos in Media off in the Parro options. That keeps the saved photos, and a photo you delete is not saved again.",
+      "title": "Saved Parro photos are visible to every user"
     }
   },
   "options": {
@@ -213,19 +217,21 @@
           "children": "Children",
           "photo_count": "Recent photos",
           "reply_conversations": "Conversations Home Assistant may reply to",
+          "save_photos": "Save photos in Media",
           "update_interval": "Update interval",
           "viewers": "Other users who can read this account"
         },
         "data_description": {
           "announcement_count": "Number of recent announcements in the Parro card, the pop-ups, the Get announcements action and the details of Latest announcement.",
           "announcement_details": "Adds the title, text and author of the latest announcements to Latest announcement, the title of the last announcement to each Class sensor, the title and group to the recent photos, and the title, group and author to Announcement events. Every Home Assistant user can read these, also in the pop-ups of this account. On for accounts added before version 0.4.0, so their cards, pop-ups and automations keep working, and off for new accounts. The account's own user and the users chosen below read the announcements in the Parro card without it.",
-          "announcement_photos": "The Parro card and the pop-ups show up to 4 photos under each announcement, only to the users who may read this account. On for new accounts. Accounts added before version 0.4.0 start with it off, so their cards look as before.",
+          "announcement_photos": "The Parro card and the pop-ups show up to 4 photos under each announcement, and all its photos in a slideshow when you tap one, only to the users who may read this account. On for new accounts. Accounts added before version 0.4.0 start with it off, so their cards look as before.",
           "card_conversations": "The Parro card and the pop-ups show the conversations of this account and the reply form to its own Home Assistant user. On for new accounts. Accounts added before version 0.4.0 start with the setting of Show conversation details, so their cards look as before. Without Show conversation details or a conversation Home Assistant may reply to, the Chat message event and the Get conversations action also need this option.",
           "chat_details": "Adds the names and the last message of the 10 most recent conversations to Unread conversations, and the sender and message to Chat message events. Every Home Assistant user can read these, also in the pop-ups. Off by default for privacy.",
           "child_photos": "An image entity with the profile photo of each child. Needs Children. Off by default, because every Home Assistant user can see image entities.",
           "children": "A device for each child with its class and its own calendar. Off by default, because device names contain your children's first names, which every Home Assistant user can see.",
           "photo_count": "Number of image entities with the most recent photos from announcements. 0 (off) by default, because class photos usually show other people's children and every Home Assistant user can see image entities. The Parro card shows them in a Recent photos block.",
           "reply_conversations": "One-to-one and family conversations that the Parro Send chat reply action may reply to, in plain text. None by default, which turns replies off. Only automations and the Home Assistant user of this account can send.",
+          "save_photos": "Saves the photos of the announcements of this account in a folder Parro in the local media folder of Home Assistant, by date and named after the Parro number of the announcement, at most 1600 pixels on the longest side and without metadata. Every Home Assistant user can browse them in Media and open them through Media links that work for a while without signing in. Apps and add-ons that can read the media folder, such as a Samba share, a media server or a NAS that shares the folder, can see them too. Backups that include the media folder contain them. Class photos usually show other people's children too. On Home Assistant Container, a folder must be mapped to /media first. Off by default. Turning it off keeps the saved photos, and a photo you delete is not saved again.",
           "update_interval": "How often Parro is checked for new information.",
           "viewers": "Besides the Home Assistant user of this account, these users can read its announcements and photos in the Parro card and the pop-ups. Conversations and replies stay with the account's own user."
         },
